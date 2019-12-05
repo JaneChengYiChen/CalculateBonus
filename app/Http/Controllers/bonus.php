@@ -6,38 +6,53 @@ use App\table_insurance_ori_bonus;
 
 class bonus extends Controller
 {
-
     public function supplier_import()
     {
-        $project_root = "/Users/user/Documents/insurance_bonus_projects/300000737";
-        $files = glob("{$project_root}/*.txt");
+        //全球人壽
+        $project_root = env('Import_file_path');
+        $files = glob("{$project_root}/*.csv");
         $array = array();
         foreach ($files as $files_key => $files_value) {
             $content = file_get_contents($files_value);
-            $content = mb_convert_encoding($content, 'UTF-8', 'BIG-5');
-
             foreach (explode("\n", $content) as $str_key => $str_value) {
-                $data = explode(" ", $str_value);
-                echo var_dump($data);
-                exit;
-                //echo var_dump($str_value);
-                // $data2 = trim(str_replace("\0", '', $data[0]));
-                array_push($array, array(
-                    "period" => "201808",
-                    "supplier_code" => "300000737",
-                ));
-                exit;
+                $data = explode(",", $str_value);
 
+                if (count($data) > 20) {
+                    $is_ins_bonus = $data[19];
+                    if ($is_ins_bonus == 2) {
+                        array_push($array, array(
+                            "period" => "201808",
+                            "supplier_code" => "300000737",
+                            "handle_id" => $data[2],
+                            "handle_name" => $data[3],
+                            "insured_id" => $data[4],
+                            "insured_name" => $data[5],
+                            "ins_no" => $data[7],
+                            "main_code" => $data[8],
+                            "effe_date" => $data[9],
+                            "ins_type" => $data[10],
+                            "tatal_pay_period" => $data[11],
+                            "pay_type" => $data[12],
+                            "recent_pay_period" => $data[13],
+                            "pay_date" => $data[14],
+                            "premium_ori" => (int) $data[16],
+                            "premium_twd" => (int) $data[23],
+                            "bonus" => (int) $data[18],
+                            "crc" => $data[23],
+                            "crc_rate" => $data[24],
+                            "created_date" => date('Y-m-d H:i:s'),
+                            "created_by" => "Jane",
+                        ));
+                    }
+                }
             }
         }
-        table_insurance_ori_bonus::insert(
-            ['supplier_code' => '12344', 'ins_no' => 'test']
-        );
-        exit;
-        $pks_members = table_insurance_ori_bonus::all();
-        foreach ($pks_members as $pks_members) {
-            echo $pks_members->name;
-        }
-        exit;
+        table_insurance_ori_bonus::insert($array);
+        echo json_encode("success!");
+    }
+
+    public function rules()
+    {
+        echo 'hihi';
     }
 }
