@@ -11,13 +11,6 @@
 |
  */
 
-// Route::middleware('auth:api')->get('/user', function (Request $request) {
-//     return $request->user();
-// });
-
-Route::get('import_bonus_from_suppliers', 'bonus@supplier_import');
+Route::post('import_bonus_from_suppliers', 'bonus@supplier_import');
+Route::post('import_bonus_doc_rules', 'bonus@rules');
 Route::get('PKS', 'Man_Data@index');
-// Route::get('revenue', function () {
-//     // phpinfo();
-//     //return phpinfo();
-// });
