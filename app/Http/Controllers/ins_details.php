@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ins_details_calculation;
 use App\table_supplier_bonus_doc_rules;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +19,7 @@ class ins_details extends Controller
             $ins_code = $ins_details_keys->Ins_Code;
             $YPeriod = (int) $ins_details_keys->YPeriod;
             $Effe_Date = strtotime($ins_details_keys->Effe_Date);
-            $FYP = (int) $ins_details_keys->FYP;
+            $FYP = (int) $ins_details_keys->RFYP;
             $diff = $ins_details_keys->diff;
 
             $lower_limit = range(0, $YPeriod);
@@ -66,11 +67,9 @@ class ins_details extends Controller
                 "handle" => $ins_details_keys->Handle,
                 "void" => $ins_details_keys->Void,
                 "y_period" => $ins_details_keys->YPeriod,
-                "fyp" => $ins_details_keys->FYP,
-                "b_rate" => $ins_details_keys->BRate,
+                "rfyp" => $ins_details_keys->RFYP,
                 "fyb" => $ins_details_keys->FYB,
                 "fya" => $ins_details_keys->FYA,
-                "ins_content_void" => $ins_details_keys->void,
                 "ins_code" => $ins_details_keys->Ins_Code,
                 "pro_name" => $ins_details_keys->Pro_Name,
                 "ins_type" => $ins_details_keys->InsType,
@@ -78,13 +77,21 @@ class ins_details extends Controller
                 "rate" => $ins_details_keys->rate,
                 "recent_pay_period" => $ins_details_keys->diff,
                 "bonus" => $bonus,
+                "period" => '201808',
                 "doc_number" => $rule_arr[0]["doc_number"],
                 "rules_start_date" => $rule_arr[0]["rules_start_date"],
                 "rules_due_date" => $rule_arr[0]["rules_due_date"],
                 "created_at" => date('Y-m-d H:i:s'),
                 "created_by" => "jane",
             ]);
+
         }
+        $chunk = array_chunk($ins_detail_insert_arr, 100);
+        foreach ($chunk as $chunk) {
+            ins_details_calculation::insert($chunk);
+        }
+
+        echo json_encode("success!");
 
     }
 
@@ -101,11 +108,9 @@ class ins_details extends Controller
             ins.Handle,
             ins.Void,
             ic.YPeriod,
-            ic.FYP,
-            ic.BRate,
+            ic.RFYP,
             ic.FYB,
             ic.FYA,
-            ic.void,
             p.Ins_Code,
             p.Pro_Name,
             p.InsType,
@@ -115,10 +120,10 @@ class ins_details extends Controller
             ELSE
                 crc.NewRate
             END rate,
-            (DATEDIFF(Month, Effe_Date,'2018-08-30')/12)+1 diff
+            (DATEDIFF(Month, ins.Effe_Date,'2018-08-31')/12)+1 diff
         FROM
             Insurance ins
-            LEFT JOIN Ins_Content ic ON ins.code = ic.MainCode
+            LEFT JOIN V_LS_Ins_Content ic ON ins.code = ic.MainCode
             LEFT JOIN Product p ON ic.Pro_No = p.Pro_No
             LEFT JOIN V_CRC crc ON ins.CRC = crc.CRC
         WHERE
