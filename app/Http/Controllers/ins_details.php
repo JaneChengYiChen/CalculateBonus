@@ -21,6 +21,7 @@ class ins_details extends Controller
             $Effe_Date = strtotime($ins_details_keys->Effe_Date);
             $FYP = (int) $ins_details_keys->RFYP;
             $diff = $ins_details_keys->diff;
+            $PayType = $ins_details_keys->PayType;
 
             $lower_limit = range(0, $YPeriod);
             $upper_liimt = range($YPeriod, 100);
@@ -55,7 +56,11 @@ class ins_details extends Controller
             } else {
                 $rate = (float) $rule_arr[0][$diff];
             }
-            $bonus = $FYP * $rate;
+            if ($PayType == 'M') {
+                $bonus = ($FYP * $rate) / 2;
+            } else {
+                $bonus = $FYP * $rate;
+            }
 
             array_push($ins_detail_insert_arr, [
                 "code" => $ins_details_keys->code,
