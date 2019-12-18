@@ -13,7 +13,6 @@ class ins_details extends Controller
     {
         $ins_details = $this::get_ins_details_from_pks();
         $ins_rules = $this::get_official_rules();
-
         $ins_detail_insert_arr = [];
         foreach ($ins_details as $ins_details_keys) {
             $ins_code = $ins_details_keys->Ins_Code;
@@ -125,27 +124,27 @@ class ins_details extends Controller
             ELSE
                 crc.NewRate
             END rate,
-            (DATEDIFF(Month, ins.Effe_Date,'2018-08-31')/12)+1 diff
+            (DATEDIFF(Month, ins.Effe_Date, '2018-08-31') / 12) + 1 diff
         FROM
             Insurance ins
             LEFT JOIN V_LS_Ins_Content ic ON ins.code = ic.MainCode
             LEFT JOIN Product p ON ic.Pro_No = p.Pro_No
             LEFT JOIN V_CRC crc ON ins.CRC = crc.CRC
         WHERE
-            ins.Ins_No in(
-                SELECT
+            ins.Ins_No in( SELECT DISTINCT
                     SS_Detail.INo FROM SS_Detail
                 WHERE
-                    ss_detail. [Period] = '201808'
-                    AND ss_detail.SupCode = 300000737
-                    AND ss_detail.YR > 1)");
+                    ss_detail.SupCode = 300000737
+                    AND ss_detail. [Period] <= '201808')
+            and((DATEDIFF(Month, ins.Effe_Date, '2018-08-31') / 12) + 1) > 0");
 
         return $data;
     }
 
     private function get_official_rules()
     {
-        $ins_rules = table_supplier_bonus_doc_rules::orderBy('doc_date', 'desc')
+        $ins_rules = table_supplier_bonus_doc_rules::whereNull('deleted_at')
+            ->orderBy('doc_date', 'desc')
             ->get();
 
         return $ins_rules->toArray();
