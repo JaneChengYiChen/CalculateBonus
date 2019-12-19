@@ -93,11 +93,12 @@ class bonus extends Controller
                             $product_code = 'all_pro';
                             break;
                         default:
-                            $product_code = $data[7];
+                            $product_code = $data[8];
                             break;
                     }
+
                     $first_period = ($data[17] == "-") ? '0' : $data[17];
-                    $pay_type = ($data[14] == '躉') ? 'M' : 'all';
+                    $pay_type = ($data[14] == '躉') ? 'D' : 'all';
                     $is_main = ($data[9] == '附約') ? '0' : 'all';
                     array_push($array, array(
                         "doc_name" => $doc_name,
@@ -123,6 +124,7 @@ class bonus extends Controller
                         "premium_type" => $data[16],
                         "rules_type" => $rules_types_insert,
                         "rules_start_period" => $rules_start_period,
+                        "0" => '0',
                         "1" => $first_period,
                         "2" => $data[18],
                         "3" => $data[19],
