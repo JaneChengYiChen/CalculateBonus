@@ -133,6 +133,7 @@ class ins_details extends Controller
             ]);
 
         }
+        ini_set("memory_limit", "1000M");
         $chunk = array_chunk($ins_detail_insert_arr, 100);
         foreach ($chunk as $chunk) {
             ins_details_calculation::insert($chunk);
