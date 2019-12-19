@@ -72,10 +72,33 @@ class bonus extends Controller
             $data = explode(",", $file_value);
             if (count($data) > 38 && empty($data[3]) == false) {
                 if (mb_strlen($data[2], "UTF-8") == strlen($data[2])) {
-                    $product_code = ($data[7] == '除') ? 'exception' : $data[8];
+
+                    //period_rules
+                    $rule_types = ['NNN', 'AAA', 'BBB', 'CCC'];
+                    foreach ($rule_types as $rule_types) {
+                        $start_period = array_search($rule_types, $data);
+                        if ($start_period != false) {
+                            $rules_start_period = $start_period - 16;
+                            $rules_types_insert = $rule_types;
+                        }
+                    }
+
+                    //product_code
+                    $product_code_pre = $data[7];
+                    switch ($product_code_pre) {
+                        case ($product_code_pre == '除'):
+                            $product_code = 'exception';
+                            break;
+                        case ($product_code_pre == '全'):
+                            $product_code = 'all_pro';
+                            break;
+                        default:
+                            $product_code = $data[7];
+                            break;
+                    }
                     $first_period = ($data[17] == "-") ? '0' : $data[17];
-                    $pay_type = ($data[14] == '躉') ? 'M' : 'All';
-                    $is_main = ($data[11] == '附約') ? '0' : 'All';
+                    $pay_type = ($data[14] == '躉') ? 'M' : 'all';
+                    $is_main = ($data[9] == '附約') ? '0' : 'all';
                     array_push($array, array(
                         "doc_name" => $doc_name,
                         "doc_date" => $data[0],
@@ -98,6 +121,8 @@ class bonus extends Controller
                         "pay_type" => $pay_type,
                         "is_main" => $is_main,
                         "premium_type" => $data[16],
+                        "rules_type" => $rules_types_insert,
+                        "rules_start_period" => $rules_start_period,
                         "1" => $first_period,
                         "2" => $data[18],
                         "3" => $data[19],
@@ -135,9 +160,12 @@ class bonus extends Controller
         //新增新的規則
         table_supplier_bonus_doc_rules::insert($array);
 
+        $today = date('Y_m_d');
         //uplaod to server
-        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . $doc_name;
-        move_uploaded_file($file_path, $upload_path);
+        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today;
+        exec("mkdir {$upload_path}");
+        $upload_file_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today . DIRECTORY_SEPARATOR . $doc_name;
+        move_uploaded_file($file_path, $upload_file_path);
 
         echo json_encode("success!");
     }
