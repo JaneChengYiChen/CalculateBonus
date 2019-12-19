@@ -100,6 +100,19 @@ class bonus extends Controller
                     $first_period = ($data[17] == "-") ? '0' : $data[17];
                     $pay_type = ($data[14] == '躉') ? 'D' : 'all';
                     $is_main = ($data[9] == '附約') ? '0' : 'all';
+                    if ($data[14] == '躉') {
+                        $D = 1;
+                        $M = 0;
+                        $Q = 0;
+                        $S = 0;
+                        $Y = 0;
+                    } else {
+                        $D = 1;
+                        $M = 1;
+                        $Q = 1;
+                        $S = 1;
+                        $Y = 1;
+                    }
                     array_push($array, array(
                         "doc_name" => $doc_name,
                         "doc_date" => $data[0],
@@ -150,6 +163,11 @@ class bonus extends Controller
                         "created_by" => "jane",
                         "deleted_at" => null,
                         "deleted_by" => null,
+                        "D" => $D,
+                        "M" => $M,
+                        "Q" => $Q,
+                        "S" => $S,
+                        "Y" => $Y,
                     ));
                 }
             }

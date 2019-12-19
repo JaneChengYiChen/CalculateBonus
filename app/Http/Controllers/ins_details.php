@@ -18,7 +18,6 @@ class ins_details extends Controller
         $ins_rules = $this::get_official_rules($supplier);
         $ins_detail_insert_arr = [];
         foreach ($ins_details as $ins_details_keys) {
-
             $ins_code = $ins_details_keys->Ins_Code; //商品編號
             $YPeriod = (int) $ins_details_keys->YPeriod; //應繳年期
             $Effe_Date = strtotime($ins_details_keys->Effe_Date); //生效日
@@ -33,26 +32,24 @@ class ins_details extends Controller
             $lower_limit = range(0, $YPeriod);
             $upper_liimt = range($YPeriod, 100);
 
-            //商品、年限上限、年限下限之集合
+            //商品、年限上限、年限下限、繳別之集合
             $product_arr_initial = array_keys(array_column($ins_rules, 'product_code'), substr($ins_code, 0, 3));
 
             $exception_mark = empty($product_arr_initial) ? 1 : 0; //is exception
 
             $blank_rules = [
                 [
-                    "doc_number" => null,
-                    "rules_start_date" => null,
-                    "rules_due_date" => null,
+                    "id" => null,
                 ],
             ];
 
             //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
             if ($diff > $YPeriod && empty($product_arr_initial) != true) {
-                $rule_arr = $this::ruls_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'follow_main_period');
+                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'follow_main_period', $PayType);
 
                 //如果主約繳費年期大於保單到現在的時間，表示可以依照主約的繳費年期計算
                 if (empty($rule_arr) != true && $main_period >= $diff) {
-
+                    $is_expired = 0;
                     $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
                     //如果客制規則起始年大於或等於現在繳費年，表示要依據條件規則
                     if ($rules_start_period >= $diff) {
@@ -65,18 +62,21 @@ class ins_details extends Controller
                 }
                 //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
                 else {
+                    $is_expired = 1;
                     $rate = 0;
                     $rule_arr = $blank_rules;
                 }
             }
             //caseB:至今繳費年期 > 應繳年期，且保單未於商品編號中，表示不可能符合「是否改成與主約繳費年期一致」
             if ($diff > $YPeriod && empty($product_arr_initial)) { //不用計算
+                $is_expired = 1;
                 $rate = 0;
                 $rule_arr = $blank_rules;
             }
             //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
             else {
-                $rule_arr = $this::ruls_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception');
+                $is_expired = 0;
+                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
 
                 //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
                 //納入除後，日期不符合/條件不符合 ==> bonus rate is 0
@@ -88,7 +88,7 @@ class ins_details extends Controller
                         $rule_arr = $blank_rules;
                     } else {
                         $product_arr_initial = [];
-                        $rule_arr = $this::ruls_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception');
+                        $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
                         $rate = empty($rule_arr) ? 0 : (float) counting_rate($rule_arr);
                         $rule_arr = empty($rule_arr) ? $blank_rules : $rule_arr;
 
@@ -125,10 +125,9 @@ class ins_details extends Controller
                 "rate" => $ins_details_keys->crcrate,
                 "recent_pay_period" => $ins_details_keys->diff,
                 "bonus" => $bonus,
-                "period" => '201808',
-                "doc_number" => $rule_arr[0]["doc_number"],
-                "rules_start_date" => $rule_arr[0]["rules_start_date"],
-                "rules_due_date" => $rule_arr[0]["rules_due_date"],
+                "period" => $period,
+                "is_expired" => $is_expired,
+                "doc_id" => $rule_arr[0]["id"],
                 "created_at" => date('Y-m-d H:i:s'),
                 "created_by" => "jane",
             ]);
@@ -284,7 +283,7 @@ class ins_details extends Controller
         return $ins_rules->toArray();
     }
 
-    private function ruls_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, $situation)
+    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, $situation, $PayType)
     {
         if ($situation == 'exception') {
             $product_arr = empty($product_arr_initial)
@@ -296,8 +295,9 @@ class ins_details extends Controller
 
         $lower_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'y_period_lower_limit'), $lower_limit));
         $upper_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'y_period_upper_limit'), $upper_liimt));
+        $paytype_arr = array_keys(array_column($ins_rules, $PayType), '1');
 
-        $rule_set = array_intersect($product_arr, $lower_limit_arr, $upper_limit_arr);
+        $rule_set = array_intersect($product_arr, $lower_limit_arr, $upper_limit_arr, $paytype_arr);
 
         $rule_arr = [];
 
