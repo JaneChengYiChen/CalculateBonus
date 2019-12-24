@@ -21,6 +21,9 @@ class bonus extends Controller
             if (count($data) > 20) {
                 $is_ins_bonus = $data[19];
                 if ($is_ins_bonus == 2) {
+
+                    $ins_no = (strlen($data[7]) == 8 && \is_numeric($data[7])) ? '00' . $data[7] : $data[7];
+
                     array_push($array, array(
                         "doc_name" => $doc_name,
                         "period" => $period,
@@ -29,7 +32,7 @@ class bonus extends Controller
                         "handle_name" => $data[3],
                         "insured_id" => $data[4],
                         "insured_name" => $data[5],
-                        "ins_no" => $data[7],
+                        "ins_no" => $ins_no,
                         "main_code" => $data[8],
                         "effe_date" => $data[9],
                         "ins_type" => $data[10],

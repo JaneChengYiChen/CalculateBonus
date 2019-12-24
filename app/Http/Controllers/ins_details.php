@@ -14,6 +14,7 @@ class ins_details extends Controller
         $supplier = $_POST["supplier"];
         $period = $_POST["period"];
         $date = $_POST["date"];
+        $cal_month = (int) \substr($period, -2, 2);
         $ins_details = $this::get_ins_details_from_pks($supplier, $period, $date);
         $ins_rules = $this::get_official_rules($supplier);
         $ins_detail_insert_arr = [];
@@ -26,6 +27,9 @@ class ins_details extends Controller
             $PayType = $ins_details_keys->PayType; //繳別，D為躉繳
             $is_main = $ins_details_keys->Main; //主附約
             $main_period = $ins_details_keys->main_period; //主約繳費年期
+            $Ins_No = $ins_details_keys->Ins_No; //保單號碼
+            $first_pay_month = (int) $ins_details_keys->first_pay_month; //首年繳費的月份
+            $first_pay_period = $ins_details_keys->first_pay_period; //首年繳費
 
             $ins_code_first_three_letter = substr($ins_code, 0, 3);
 
@@ -51,13 +55,13 @@ class ins_details extends Controller
                 if (empty($rule_arr) != true && $main_period >= $diff) {
                     $is_expired = 0;
                     $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
-                    //如果客制規則起始年大於或等於現在繳費年，表示要依據條件規則
-                    if ($rules_start_period >= $diff) {
-                        $rate = counting_rate($rule_arr);
+                    //如果客制規則起始年大於現在繳費年，直接使用欄位
+                    if ($rules_start_period > $diff) {
+                        $rate = $rule_arr[0][$diff];
                     }
-                    //如果客制規則起始年小於或等於現在繳費年，直接使用欄為計算
+                    //如果客制規則起始年小於或等於現在繳費年，計算
                     else {
-                        $rate = 0;
+                        $rate = counting_rate($rule_arr);
                     }
                 }
                 //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
@@ -76,33 +80,82 @@ class ins_details extends Controller
             //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
             else {
                 $is_expired = 0;
-                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
-
-                //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
-                //納入除後，日期不符合/條件不符合 ==> bonus rate is 0
-                //納入除後，日期、條件符合 ==> depends y period
-                //case2: 本身要納入 exception，但日期不符合 ==> bonus rate is 0
-                if (count($rule_arr) == 0) {
-                    if ($exception_mark == 1) { //如果本身是exception
-                        $rate = 0;
-                        $rule_arr = $blank_rules;
-                    } else {
-                        $product_arr_initial = [];
-                        $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
-                        $rate = empty($rule_arr) ? 0 : (float) counting_rate($rule_arr);
-                        $rule_arr = empty($rule_arr) ? $blank_rules : $rule_arr;
-
-                    }
+                //但要判斷當月份是否為該要計算佣金的月份,先預設不用計算
+                //躉繳且首佣時間不等於該計算時間
+                if ($PayType == 'D' && ($period != $first_pay_period)) {
+                    $rate = 0;
+                    $rule_arr = $blank_rules;
+                }
+                //季繳且首佣月份減該計算月份後除以3之餘數不等於零
+                if ($PayType == 'Q' && (($first_pay_month - $cal_month) % 3) != 0) {
+                    $rate = 0;
+                    $rule_arr = $blank_rules;
+                }
+                //半年繳且首佣月份減該計算月份後除以6之餘數不等於零
+                if ($PayType == 'S' && (($first_pay_month - $cal_month) % 6) != 0) {
+                    $rate = 0;
+                    $rule_arr = $blank_rules;
+                }
+                //年繳且首佣月份不等於該計算月份
+                if ($PayType == 'Y' && ($first_pay_month != $cal_month)) {
+                    $rate = 0;
+                    $rule_arr = $blank_rules;
                 } else {
-                    $rate = counting_rate($rule_arr);
+                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
+
+                    //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
+                    //納入除後，日期不符合/條件不符合 ==> bonus rate is 0
+                    //納入除後，日期、條件符合 ==> depends y period
+                    //case2: 本身要納入 exception，但日期不符合 ==> bonus rate is 0
+                    if (count($rule_arr) == 0) {
+                        if ($exception_mark == 1) { //如果本身是exception
+                            $rate = 0;
+                            $rule_arr = $blank_rules;
+                        } else {
+                            $product_arr_initial = [];
+                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
+
+                            if (empty($rule_arr)) {
+                                $rate = 0;
+                            } else {
+                                $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
+                                //如果客制規則起始年大於現在繳費年，表示直接使用欄位計算
+                                if ($rules_start_period > $diff) {
+                                    $rate = $rule_arr[0][$diff];
+
+                                }
+                                //如果客制規則起始年小於或等於現在繳費年，計算規則
+                                else {
+
+                                    $rate = counting_rate($rule_arr);
+
+                                }
+                            }
+
+                            $rule_arr = empty($rule_arr) ? $blank_rules : $rule_arr;
+
+                        }
+                    } else {
+                        $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
+                        //如果客制規則起始年大於現在繳費年，表示要依據條件規則
+                        if ($rules_start_period > $diff) {
+                            $rate = $rule_arr[0][$diff];
+
+                        }
+                        //如果客制規則起始年小於或等於現在繳費年，直接使用欄為計算
+                        else {
+                            $rate = counting_rate($rule_arr);
+
+                        }
+                    }
                 }
             }
 
             //如果是月繳，FYP則要除以2
             if ($PayType == 'M') {
-                $bonus = ($FYP * $rate) / 2;
+                $bonus = ((float) $FYP * (float) $rate) / 2;
             } else {
-                $bonus = $FYP * $rate;
+                $bonus = (float) $FYP * (float) $rate;
             }
 
             array_push($ins_detail_insert_arr, [
@@ -133,8 +186,9 @@ class ins_details extends Controller
             ]);
 
         }
-        ini_set("memory_limit", "1000M");
-        $chunk = array_chunk($ins_detail_insert_arr, 100);
+        ini_set("memory_limit", "3000M");
+        $chunk = array_chunk($ins_detail_insert_arr, 50);
+
         foreach ($chunk as $chunk) {
             ins_details_calculation::insert($chunk);
         }
@@ -159,23 +213,17 @@ class ins_details extends Controller
             ins.Void,
             ic.Main,
             ic.YPeriod,
-            (SELECT
-			        TOP 1 Ins_Content.YPeriod
-		        FROM
-			        Ins_Content
-		        LEFT JOIN Insurance ON Ins_Content.MainCode = Insurance.Code
-	        WHERE
-		        ins.Ins_No = Insurance.Ins_No
-		        AND ins.code = Insurance.Code
-		        AND Ins_Content.Main = 1) AS main_period,
-            ic.FYP * ic.crcrate FYP,
-            ic.FYB,
-            ic.FYA,
-            p.Ins_Code,
-            p.Pro_Name,
-            p.InsType,
-            p.FullName,
-            (DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1 diff
+            (
+                SELECT
+                    TOP 1 Ins_Content.YPeriod
+                FROM
+                    Ins_Content
+                LEFT JOIN Insurance ON Ins_Content.MainCode = Insurance.Code
+            WHERE
+                ins.Ins_No = Insurance.Ins_No
+                AND ins.code = Insurance.Code
+                AND Ins_Content.Main = 1) AS main_period, ic.FYP * ic.crcrate FYP, ic.FYB, ic.FYA, p.Ins_Code, p.Pro_Name, p.InsType, p.FullName, (DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1 diff, F.first_pay_period,
+            RIGHT(F.first_pay_period, 2) first_pay_month
         FROM
             Insurance ins
             LEFT JOIN (
@@ -201,7 +249,7 @@ class ins_details extends Controller
                         WHERE
                             x.CNO = b.CNO
                             AND x.CRC = b.CRC
-                            AND x. DATE <= b.Receive_Date
+                            AND x. DATE <= '{$date}'
                         ORDER BY
                             x. DATE DESC), 1) AS CRCRate,
                     ROUND(a.FYP * ISNULL(d.FeatBR, 1) * (
@@ -263,13 +311,22 @@ class ins_details extends Controller
                     c.CNO <> 10000) ic ON ins.code = ic.MainCode
             LEFT JOIN Product p ON ic.Pro_No = p.Pro_No
             LEFT JOIN V_CRC crc ON ins.CRC = crc.CRC
-        WHERE
-            ins.Ins_No in( SELECT DISTINCT
-                    SS_Detail.INo FROM SS_Detail
+            LEFT JOIN ( SELECT DISTINCT
+                    SS_Detail.INo, MIN(ss_detail. [Period]) first_pay_period
+                FROM
+                    SS_Detail
                 WHERE
                     ss_detail.SupCode = {$supplier}
-                    AND ss_detail. [Period] <= '{$period}')
-            and((DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1) > 0");
+                    AND ss_detail. [Period] <= '{$period}'
+                GROUP BY
+                    SS_Detail.INo) F ON F.INO = ins.Ins_No
+            WHERE
+                ins.Ins_No in( SELECT DISTINCT
+                        SS_Detail.INo FROM SS_Detail
+                    WHERE
+                        ss_detail.SupCode = {$supplier}
+                        AND ss_detail. [Period] <= '{$period}')
+                and((DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1) > 0");
 
         return $data;
     }
