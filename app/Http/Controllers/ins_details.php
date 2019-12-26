@@ -47,60 +47,52 @@ class ins_details extends Controller
                 ],
             ];
 
-            //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
-            if ($diff > $YPeriod && empty($product_arr_initial) != true) {
-                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'follow_main_period', $PayType);
+            //躉繳且首佣時間不等於該計算時間
+            if (($PayType == 'D' && ($period != $first_pay_period))
+                //季繳且首佣月份減該計算月份後除以3之餘數不等於零
+                 || ($PayType == 'Q' && (($first_pay_month - $cal_month) % 3) != 0)
+                //半年繳且首佣月份減該計算月份後除以6之餘數不等於零
+                 || ($PayType == 'S' && (($first_pay_month - $cal_month) % 6) != 0)
+                //年繳且首佣月份不等於該計算月份
+                 || ($PayType == 'Y' && ($first_pay_month != $cal_month))) {
+                $is_expired = 2;
+                $rate = 0;
+                $rule_arr = $blank_rules;
 
-                //如果主約繳費年期大於保單到現在的時間，表示可以依照主約的繳費年期計算
-                if (empty($rule_arr) != true && $main_period >= $diff) {
-                    $is_expired = 0;
-                    $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
-                    //如果客制規則起始年大於現在繳費年，直接使用欄位
-                    if ($rules_start_period > $diff) {
-                        $rate = $rule_arr[0][$diff];
+            } else {
+                //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
+                if ($diff > $YPeriod && empty($product_arr_initial) != true) {
+                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'follow_main_period', $PayType);
+
+                    //如果主約繳費年期大於保單到現在的時間，表示可以依照主約的繳費年期計算
+                    if (empty($rule_arr) != true && $main_period >= $diff) {
+                        $is_expired = 0;
+                        $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
+                        //如果客制規則起始年大於現在繳費年，直接使用欄位
+                        if ($rules_start_period > $diff) {
+                            $rate = $rule_arr[0][$diff];
+                        }
+                        //如果客制規則起始年小於或等於現在繳費年，計算
+                        else {
+                            $rate = counting_rate($rule_arr);
+                        }
                     }
-                    //如果客制規則起始年小於或等於現在繳費年，計算
+                    //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
                     else {
-                        $rate = counting_rate($rule_arr);
+                        $is_expired = 1;
+                        $rate = 0;
+                        $rule_arr = $blank_rules;
                     }
                 }
-                //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
-                else {
+                //caseB:至今繳費年期 > 應繳年期，且保單未於商品編號中，表示不可能符合「是否改成與主約繳費年期一致」
+                if ($diff > $YPeriod && empty($product_arr_initial)) { //不用計算
                     $is_expired = 1;
                     $rate = 0;
                     $rule_arr = $blank_rules;
                 }
-            }
-            //caseB:至今繳費年期 > 應繳年期，且保單未於商品編號中，表示不可能符合「是否改成與主約繳費年期一致」
-            if ($diff > $YPeriod && empty($product_arr_initial)) { //不用計算
-                $is_expired = 1;
-                $rate = 0;
-                $rule_arr = $blank_rules;
-            }
-            //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
-            else {
-                $is_expired = 0;
-                //但要判斷當月份是否為該要計算佣金的月份,先預設不用計算
-                //躉繳且首佣時間不等於該計算時間
-                if ($PayType == 'D' && ($period != $first_pay_period)) {
-                    $rate = 0;
-                    $rule_arr = $blank_rules;
-                }
-                //季繳且首佣月份減該計算月份後除以3之餘數不等於零
-                if ($PayType == 'Q' && (($first_pay_month - $cal_month) % 3) != 0) {
-                    $rate = 0;
-                    $rule_arr = $blank_rules;
-                }
-                //半年繳且首佣月份減該計算月份後除以6之餘數不等於零
-                if ($PayType == 'S' && (($first_pay_month - $cal_month) % 6) != 0) {
-                    $rate = 0;
-                    $rule_arr = $blank_rules;
-                }
-                //年繳且首佣月份不等於該計算月份
-                if ($PayType == 'Y' && ($first_pay_month != $cal_month)) {
-                    $rate = 0;
-                    $rule_arr = $blank_rules;
-                } else {
+                //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
+                else {
+                    $is_expired = 0;
                     $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
 
                     //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
@@ -122,13 +114,10 @@ class ins_details extends Controller
                                 //如果客制規則起始年大於現在繳費年，表示直接使用欄位計算
                                 if ($rules_start_period > $diff) {
                                     $rate = $rule_arr[0][$diff];
-
                                 }
                                 //如果客制規則起始年小於或等於現在繳費年，計算規則
                                 else {
-
                                     $rate = counting_rate($rule_arr);
-
                                 }
                             }
 
@@ -140,12 +129,10 @@ class ins_details extends Controller
                         //如果客制規則起始年大於現在繳費年，表示要依據條件規則
                         if ($rules_start_period > $diff) {
                             $rate = $rule_arr[0][$diff];
-
                         }
                         //如果客制規則起始年小於或等於現在繳費年，直接使用欄為計算
                         else {
                             $rate = counting_rate($rule_arr);
-
                         }
                     }
                 }
