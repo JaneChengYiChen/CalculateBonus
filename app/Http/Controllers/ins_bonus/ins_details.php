@@ -1,19 +1,22 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\ins_bonus;
 
+use App\Http\Controllers\Controller;
 use App\ins_details_calculation;
 use App\table_supplier_bonus_doc_rules;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ins_details extends Controller
 {
 
-    public function query()
+    public function query(Request $request)
     {
-        $supplier = $_POST["supplier"];
-        $period = $_POST["period"];
-        $date = $_POST["date"];
+        $supplier = $request->supplier;
+        $period = $request->period;
+        $date = $request->date;
+
         $cal_month = (int) \substr($period, -2, 2);
         $ins_details = $this::get_ins_details_from_pks($supplier, $period, $date);
         $ins_rules = $this::get_official_rules($supplier);

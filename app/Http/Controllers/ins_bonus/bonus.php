@@ -1,18 +1,21 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\ins_bonus;
 
+use App\Http\Controllers\Controller;
 use App\table_insurance_ori_bonus;
 use App\table_supplier_bonus_doc_rules;
+use Illuminate\Http\Request;
 
 class bonus extends Controller
 {
-    public function supplier_import()
+    public function supplier_import(Request $request)
     {
-        $supplier = $_POST["supplier"];
-        $period = $_POST["period"];
-        $file_path = $_FILES["file"]["tmp_name"];
-        $doc_name = $_FILES["file"]["name"];
+        $supplier = $request->supplier;
+        $period = $request->period;
+        $file_path = $request->file->path();
+        $doc_name = $request->file->getClientOriginalName();
+
         $file = file_get_contents($file_path);
         $array = array();
         foreach (explode("\n", $file) as $file_key => $file_value) {
@@ -63,12 +66,13 @@ class bonus extends Controller
         echo json_encode("success!");
     }
 
-    public function rules()
+    public function rules(Request $request)
     {
         //記得要先輸出成CSV
-        $supplier = $_POST["supplier"];
-        $file_path = $_FILES["file"]["tmp_name"];
-        $doc_name = $_FILES["file"]["name"];
+        $supplier = $request->supplier;
+        $file_path = $request->file->path();
+        $doc_name = $request->file->getClientOriginalName();
+
         $file = file_get_contents($file_path);
         $array = array();
         foreach (explode("\n", $file) as $file_key => $file_value) {
