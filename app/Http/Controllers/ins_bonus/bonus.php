@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
 use App\table_insurance_ori_bonus;
 use App\table_supplier_bonus_doc_rules;
 use Illuminate\Http\Request;
@@ -17,42 +20,17 @@ class bonus extends Controller
         $doc_name = $request->file->getClientOriginalName();
 
         $file = file_get_contents($file_path);
-        $array = array();
-        foreach (explode("\n", $file) as $file_key => $file_value) {
-            $data = explode(",", $file_value);
 
-            if (count($data) > 20) {
-                $is_ins_bonus = $data[19];
-                if ($is_ins_bonus == 2) {
-
-                    $ins_no = (strlen($data[7]) == 8 && \is_numeric($data[7])) ? '00' . $data[7] : $data[7];
-
-                    array_push($array, array(
-                        "doc_name" => $doc_name,
-                        "period" => $period,
-                        "supplier_code" => $supplier,
-                        "handle_id" => $data[2],
-                        "handle_name" => $data[3],
-                        "insured_id" => $data[4],
-                        "insured_name" => $data[5],
-                        "ins_no" => $ins_no,
-                        "main_code" => $data[8],
-                        "effe_date" => $data[9],
-                        "ins_type" => $data[10],
-                        "tatal_pay_period" => $data[11],
-                        "pay_type" => $data[12],
-                        "recent_pay_period" => $data[13],
-                        "pay_date" => $data[14],
-                        "premium_ori" => (int) $data[16],
-                        "premium_twd" => (int) $data[26],
-                        "bonus" => (int) $data[18],
-                        "crc" => $data[23],
-                        "crc_rate" => $data[24],
-                        "created_at" => date('Y-m-d H:i:s'),
-                        "created_by" => "Jane",
-                    ));
-                }
-            }
+        switch ($supplier) {
+            case 300000737: //全球人壽
+                $array = TransGlobe::bonus_ori($file, $doc_name, $period, $supplier);
+                break;
+            case 300000735: //遠雄人壽
+                $array = Farglory::bonus_ori($file, $doc_name, $period, $supplier);
+                break;
+            case 300000734: //富邦人壽
+                $array = Fubon::bonus_ori($file, $doc_name, $period, $supplier);
+                break;
         }
 
         table_insurance_ori_bonus::insert($array);
@@ -120,6 +98,8 @@ class bonus extends Controller
                         $S = 1;
                         $Y = 1;
                     }
+                    $y_period_lower_limit = (empty($data[14])) ? 0 : $data[14];
+                    $y_period_upper_limit = (empty($data[15])) ? 99 : $data[15];
                     array_push($array, array(
                         "doc_name" => $doc_name,
                         "doc_date" => $data[0],
@@ -137,8 +117,8 @@ class bonus extends Controller
                         "main_keyword1" => $data[11],
                         "main_keyword2" => $data[12],
                         "is_same_as_main_period" => $data[13],
-                        "y_period_lower_limit" => $data[14],
-                        "y_period_upper_limit" => $data[15],
+                        "y_period_lower_limit" => $y_period_lower_limit,
+                        "y_period_upper_limit" => $y_period_upper_limit,
                         "pay_type" => $pay_type,
                         "is_main" => $is_main,
                         "premium_type" => $data[16],

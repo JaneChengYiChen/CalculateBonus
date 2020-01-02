@@ -28,7 +28,7 @@ class ins_details extends Controller
             $FYP = (int) $ins_details_keys->FYP; //FYP
             $diff = (int) $ins_details_keys->diff; //目前位於第幾個繳費年期
             $PayType = $ins_details_keys->PayType; //繳別，D為躉繳
-            $is_main = $ins_details_keys->Main; //主附約
+            $is_main = (int) $ins_details_keys->Main; //主附約
             $main_period = $ins_details_keys->main_period; //主約繳費年期
             $Ins_No = $ins_details_keys->Ins_No; //保單號碼
             $first_pay_month = (int) $ins_details_keys->first_pay_month; //首年繳費的月份
@@ -37,7 +37,7 @@ class ins_details extends Controller
             $ins_code_first_three_letter = substr($ins_code, 0, 3);
 
             $lower_limit = range(0, $YPeriod);
-            $upper_liimt = range($YPeriod, 100);
+            $upper_limit = range($YPeriod, 100);
 
             //商品、年限上限、年限下限、繳別之集合
             $product_arr_initial = array_keys(array_column($ins_rules, 'product_code'), substr($ins_code, 0, 3));
@@ -64,7 +64,7 @@ class ins_details extends Controller
 
             } else {
                 //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
-                if ($diff > $YPeriod && empty($product_arr_initial) != true) {
+                if ($diff > $YPeriod && !empty($product_arr_initial)) {
                     $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'follow_main_period', $PayType);
 
                     //如果主約繳費年期大於保單到現在的時間，表示可以依照主約的繳費年期計算
@@ -77,7 +77,7 @@ class ins_details extends Controller
                         }
                         //如果客制規則起始年小於或等於現在繳費年，計算
                         else {
-                            $rate = counting_rate($rule_arr);
+                            $rate = $this::counting_rate($rule_arr);
                         }
                     }
                     //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
@@ -96,7 +96,7 @@ class ins_details extends Controller
                 //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
                 else {
                     $is_expired = 0;
-                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
+                    $rule_arr = $this::is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, 'exception');
 
                     //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
                     //納入除後，日期不符合/條件不符合 ==> bonus rate is 0
@@ -108,7 +108,7 @@ class ins_details extends Controller
                             $rule_arr = $blank_rules;
                         } else {
                             $product_arr_initial = [];
-                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'exception', $PayType);
+                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'exception', $PayType);
 
                             if (empty($rule_arr)) {
                                 $rate = 0;
@@ -120,7 +120,7 @@ class ins_details extends Controller
                                 }
                                 //如果客制規則起始年小於或等於現在繳費年，計算規則
                                 else {
-                                    $rate = counting_rate($rule_arr);
+                                    $rate = $this::counting_rate($rule_arr);
                                 }
                             }
 
@@ -135,7 +135,7 @@ class ins_details extends Controller
                         }
                         //如果客制規則起始年小於或等於現在繳費年，直接使用欄為計算
                         else {
-                            $rate = counting_rate($rule_arr);
+                            $rate = $this::counting_rate($rule_arr);
                         }
                     }
                 }
@@ -173,6 +173,7 @@ class ins_details extends Controller
                 "doc_id" => $rule_arr[0]["id"],
                 "created_at" => date('Y-m-d H:i:s'),
                 "created_by" => "jane",
+                "sup_code" => $supplier,
             ]);
 
         }
@@ -189,6 +190,7 @@ class ins_details extends Controller
 
     private function get_ins_details_from_pks($supplier, $period, $date)
     {
+        ini_set("memory_limit", "3000M");
         $data = DB::connection('sqlsrv')
             ->select("SELECT
             ins.code,
@@ -306,7 +308,7 @@ class ins_details extends Controller
                 FROM
                     SS_Detail
                 WHERE
-                    ss_detail.SupCode = {$supplier}
+                    ss_detail.SupCode = '{$supplier}'
                     AND ss_detail. [Period] <= '{$period}'
                 GROUP BY
                     SS_Detail.INo) F ON F.INO = ins.Ins_No
@@ -314,7 +316,7 @@ class ins_details extends Controller
                 ins.Ins_No in( SELECT DISTINCT
                         SS_Detail.INo FROM SS_Detail
                     WHERE
-                        ss_detail.SupCode = {$supplier}
+                        ss_detail.SupCode = '{$supplier}'
                         AND ss_detail. [Period] <= '{$period}')
                 and((DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1) > 0");
 
@@ -331,7 +333,7 @@ class ins_details extends Controller
         return $ins_rules->toArray();
     }
 
-    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, $situation, $PayType)
+    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $situation, $PayType)
     {
         if ($situation == 'exception') {
             $product_arr = empty($product_arr_initial)
@@ -339,10 +341,13 @@ class ins_details extends Controller
         }if ($situation == 'follow_main_period') {
             $product_arr = empty($product_arr_initial)
             ? array_keys(array_column($ins_rules, 'is_same_as_main_period'), 'Y') : $product_arr_initial;
+        }if ($situation == 'is_main') {
+            $product_arr = empty($product_arr_initial)
+            ? array_keys(array_column($ins_rules, 'is_main'), '0') : $product_arr_initial;
         }
 
         $lower_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'y_period_lower_limit'), $lower_limit));
-        $upper_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'y_period_upper_limit'), $upper_liimt));
+        $upper_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'y_period_upper_limit'), $upper_limit));
         $paytype_arr = array_keys(array_column($ins_rules, $PayType), '1');
 
         $rule_set = array_intersect($product_arr, $lower_limit_arr, $upper_limit_arr, $paytype_arr);
@@ -368,32 +373,51 @@ class ins_details extends Controller
         return $rule_arr;
     }
 
-}
+    private function counting_rate($rule_arr)
+    {
 
-function counting_rate($rule_arr)
-{
+        $rules_type = $rule_arr[0]["rules_type"];
+        $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
+        $rules_start_period_pre = $rules_start_period - 1;
 
-    $rules_type = $rule_arr[0]["rules_type"];
-    $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
-    $rules_start_period_pre = $rules_start_period - 1;
+        switch ($rules_type) {
+            case ($rules_type == 'AAA'): //前一年的比率至繳費期滿
+                $rate = $rule_arr[0][$rules_start_period_pre];
+                break;
+            case ($rules_type == 'BBB'): //前一年的比率至滿期
+                $rate = $rule_arr[0][$rules_start_period_pre];
+                break;
+            case ($rules_type == 'CCC'): //前一年的比率至附約保障期滿
+                $rate = $rule_arr[0][$rules_start_period_pre];
+                break;
+            case ($rules_type == 'NNN'): //當年度或之後都沒有服務津貼
+                $rate = 0;
+                break;
+            default:
+                $rate = 0;
+                break;
+        }
 
-    switch ($rules_type) {
-        case ($rules_type == 'AAA'): //前一年的比率至繳費期滿
-            $rate = $rule_arr[0][$rules_start_period_pre];
-            break;
-        case ($rules_type == 'BBB'): //前一年的比率至滿期
-            $rate = $rule_arr[0][$rules_start_period_pre];
-            break;
-        case ($rules_type == 'CCC'): //前一年的比率至附約保障期滿
-            $rate = $rule_arr[0][$rules_start_period_pre];
-            break;
-        case ($rules_type == 'NNN'): //當年度或之後都沒有服務津貼
-            $rate = 0;
-            break;
-        default:
-            $rate = 0;
-            break;
+        return $rate;
     }
 
-    return $rate;
+    private function is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, $scenario)
+    {
+
+        if ($is_main == 1) { //如果是主約
+            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType);
+
+        } else { //default 全是附約
+            //如果附約不在規則公文中，檢查是否有符合全附約適用的規則
+            $contract_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'is_main', $PayType);
+
+            if (empty($contract_arr)) { //如果沒有適用的規則，丟進exception
+                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType);
+            } else {
+                $rule_arr = $contract_arr;
+            }
+        }
+
+        return $rule_arr;
+    }
 }
