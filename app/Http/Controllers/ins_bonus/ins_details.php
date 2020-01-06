@@ -33,14 +33,21 @@ class ins_details extends Controller
             $Ins_No = $ins_details_keys->Ins_No; //保單號碼
             $first_pay_month = (int) $ins_details_keys->first_pay_month; //首年繳費的月份
             $first_pay_period = $ins_details_keys->first_pay_period; //首年繳費
+            $pro_name = $ins_details_keys->Pro_Name; //商品名稱
 
-            $ins_code_first_three_letter = substr($ins_code, 0, 3);
+            switch ($supplier) {
+                case ($supplier == '300000734'): //富邦人壽，取前四碼
+                    $ins_code_search = substr($ins_code, 0, 4);
+                    break;
+                default:
+                    $ins_code_search = substr($ins_code, 0, 3);
+            }
 
             $lower_limit = range(0, $YPeriod);
             $upper_limit = range($YPeriod, 100);
 
             //商品、年限上限、年限下限、繳別之集合
-            $product_arr_initial = array_keys(array_column($ins_rules, 'product_code'), substr($ins_code, 0, 3));
+            $product_arr_initial = array_keys(array_column($ins_rules, 'product_code'), $ins_code_search);
 
             $exception_mark = empty($product_arr_initial) ? 1 : 0; //is exception
 
@@ -65,7 +72,7 @@ class ins_details extends Controller
             } else {
                 //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
                 if ($diff > $YPeriod && !empty($product_arr_initial)) {
-                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_liimt, $Effe_Date, 'follow_main_period', $PayType);
+                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'follow_main_period', $PayType, $pro_name);
 
                     //如果主約繳費年期大於保單到現在的時間，表示可以依照主約的繳費年期計算
                     if (empty($rule_arr) != true && $main_period >= $diff) {
@@ -96,7 +103,7 @@ class ins_details extends Controller
                 //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
                 else {
                     $is_expired = 0;
-                    $rule_arr = $this::is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, 'exception');
+                    $rule_arr = $this::is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, 'exception', $pro_name);
 
                     //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
                     //納入除後，日期不符合/條件不符合 ==> bonus rate is 0
@@ -108,7 +115,7 @@ class ins_details extends Controller
                             $rule_arr = $blank_rules;
                         } else {
                             $product_arr_initial = [];
-                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'exception', $PayType);
+                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'exception', $PayType, $pro_name);
 
                             if (empty($rule_arr)) {
                                 $rate = 0;
@@ -333,7 +340,7 @@ class ins_details extends Controller
         return $ins_rules->toArray();
     }
 
-    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $situation, $PayType)
+    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $situation, $PayType, $pro_name)
     {
         if ($situation == 'exception') {
             $product_arr = empty($product_arr_initial)
@@ -357,14 +364,42 @@ class ins_details extends Controller
         foreach ($rule_set as $rule_set) {
             $rule_start_date = strtotime($ins_rules[$rule_set]["rules_start_date"]);
             $rule_due_date = strtotime($ins_rules[$rule_set]["rules_due_date"]);
+            $main_keyword1 = $ins_rules[$rule_set]["main_keyword1"];
+            $main_keyword2 = $ins_rules[$rule_set]["main_keyword2"];
+
+            //如果規則有關鍵字，那必須中其中一項關鍵字
+            //也就是說count($keywords array) != 0
+            $keywords = [];
+
+            if ($main_keyword1 || $main_keyword2) {
+                $is_keywords = 1; //規則有關鍵字
+                if ($main_keyword1) {
+                    if (strpos($pro_name, $main_keyword1)) {
+                        array_push($keywords, '1');
+                    }
+                }
+                if ($main_keyword2) {
+                    if (strpos($pro_name, $main_keyword2)) {
+                        array_push($keywords, '2');
+                    }
+                }
+
+            } else {
+                //如果規則沒有關鍵字，那不用判斷關鍵字的部分
+                $is_keywords = 2; //規則沒有關鍵字
+            }
 
             if ($rule_due_date) {
-                if ($Effe_Date >= $rule_start_date && $Effe_Date <= $rule_due_date) {
+                if ($Effe_Date >= $rule_start_date && $Effe_Date <= $rule_due_date
+                    && ($is_keywords == 2
+                        || ($is_keywords == 1 && count($keywords) > 0))) {
                     array_push($rule_arr, $ins_rules[$rule_set]);
                 }
 
             } else {
-                if ($Effe_Date >= $rule_start_date) {
+                if ($Effe_Date >= $rule_start_date
+                    && ($is_keywords == 2
+                        || ($is_keywords == 1 && count($keywords) > 0))) {
                     array_push($rule_arr, $ins_rules[$rule_set]);
                 }
             }
@@ -401,18 +436,18 @@ class ins_details extends Controller
         return $rate;
     }
 
-    private function is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, $scenario)
+    private function is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, $scenario, $pro_name)
     {
 
         if ($is_main == 1) { //如果是主約
-            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType);
+            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType, $pro_name);
 
         } else { //default 全是附約
             //如果附約不在規則公文中，檢查是否有符合全附約適用的規則
-            $contract_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'is_main', $PayType);
+            $contract_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'is_main', $PayType, $pro_name);
 
             if (empty($contract_arr)) { //如果沒有適用的規則，丟進exception
-                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType);
+                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType, $pro_name);
             } else {
                 $rule_arr = $contract_arr;
             }

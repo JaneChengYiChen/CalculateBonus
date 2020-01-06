@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
-use App\table_insurance_ori_bonus;
 use App\table_supplier_bonus_doc_rules;
 use Illuminate\Http\Request;
 
@@ -33,7 +32,6 @@ class bonus extends Controller
                 break;
         }
 
-        table_insurance_ori_bonus::insert($array);
         $today = date('Y_m_d');
         //uplaod to server
         $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . "supplier_bonus" . DIRECTORY_SEPARATOR . $today;
