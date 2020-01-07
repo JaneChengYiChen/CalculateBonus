@@ -34,6 +34,7 @@ class ins_details extends Controller
             $first_pay_month = (int) $ins_details_keys->first_pay_month; //首年繳費的月份
             $first_pay_period = $ins_details_keys->first_pay_period; //首年繳費
             $pro_name = $ins_details_keys->Pro_Name; //商品名稱
+            $remark = $ins_details_keys->remark; //備註
 
             switch ($supplier) {
                 case ($supplier == '300000734'): //富邦人壽，取前四碼
@@ -181,6 +182,7 @@ class ins_details extends Controller
                 "created_at" => date('Y-m-d H:i:s'),
                 "created_by" => "jane",
                 "sup_code" => $supplier,
+                "remark" => $remark,
             ]);
 
         }
@@ -212,6 +214,7 @@ class ins_details extends Controller
             ins.Void,
             ic.Main,
             ic.YPeriod,
+            ic.remark,
             (
                 SELECT
                     TOP 1 Ins_Content.YPeriod
@@ -230,6 +233,7 @@ class ins_details extends Controller
                     b.CNO,
                     a.Main,
                     a.Rec_No,
+                    a.remark,
                     a.MainCode,
                     b.Ins_No,
                     b.Receive_Date,
