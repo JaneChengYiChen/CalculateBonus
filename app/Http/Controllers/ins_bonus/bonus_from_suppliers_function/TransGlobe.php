@@ -11,7 +11,11 @@ class TransGlobe extends Controller
     {
         $array = array();
         foreach (explode("\n", $file) as $file_key => $file_value) {
-            $data = explode(",", $file_value);
+            $explode_character = strchr($file_value, ",");
+            $explode_arr = ($explode_character) ? explode(",", $file_value) : explode(" ", $file_value);
+            $data_decode = ($explode_character) ? $explode_arr : mb_convert_encoding($file_value, 'UTF-8', 'big5');
+            $data_pre = ($explode_character) ? $explode_arr : str_replace("%09", " ", urlencode($data_decode));
+            $data = ($explode_character) ? $explode_arr : \explode(" ", urldecode($data_pre));
 
             if (count($data) > 20) {
                 $is_ins_bonus = $data[19];
