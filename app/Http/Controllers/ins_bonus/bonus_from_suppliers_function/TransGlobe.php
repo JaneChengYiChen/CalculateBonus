@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
 
 use App\Http\Controllers\Controller;
-use App\table_insurance_ori_bonus;
 
 //全球人壽
 class TransGlobe extends Controller
@@ -48,10 +47,6 @@ class TransGlobe extends Controller
             }
         }
 
-        ini_set("memory_limit", "1000M");
-        $chunk = array_chunk($array, 1000);
-        foreach ($chunk as $chunk) {
-            table_insurance_ori_bonus::insert($chunk);
-        }
+        return $array;
     }
 }

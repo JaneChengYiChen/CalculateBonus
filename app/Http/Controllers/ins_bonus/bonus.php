@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
+use App\table_insurance_ori_bonus;
 use App\table_supplier_bonus_doc_rules;
 use Illuminate\Http\Request;
 
@@ -30,6 +31,12 @@ class bonus extends Controller
             case 300000734: //富邦人壽
                 $array = Fubon::bonus_ori($file, $doc_name, $period, $supplier);
                 break;
+        }
+
+        ini_set("memory_limit", "1000M");
+        $chunk = array_chunk($array, 1000);
+        foreach ($chunk as $chunk) {
+            table_insurance_ori_bonus::insert($chunk);
         }
 
         $today = date('Y_m_d');
