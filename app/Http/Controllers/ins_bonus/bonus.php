@@ -6,13 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
-use App\table_insurance_ori_bonus;
-use App\table_supplier_bonus_doc_rules;
+use App\import_bonus_suppliers;
+use App\import_bonus_doc_rules;
 use Illuminate\Http\Request;
 
 class bonus extends Controller
 {
-    public function supplier_import(Request $request)
+    public function supplier(Request $request)
     {
         $supplier = $request->supplier;
         $period = $request->period;
@@ -36,7 +36,7 @@ class bonus extends Controller
         ini_set("memory_limit", "1000M");
         $chunk = array_chunk($array, 1000);
         foreach ($chunk as $chunk) {
-            table_insurance_ori_bonus::insert($chunk);
+            import_bonus_suppliers::insert($chunk);
         }
 
         $today = date('Y_m_d');
@@ -165,12 +165,12 @@ class bonus extends Controller
             }
         }
         //將先前的規則改為delete
-        table_supplier_bonus_doc_rules::where('supplier_code', $supplier)
+        import_bonus_doc_rules::where('supplier_code', $supplier)
             ->where('deleted_at', null)
             ->update(['deleted_at' => date('Y-m-d H:i:s'), "deleted_by" => "jane"]);
 
         //新增新的規則
-        table_supplier_bonus_doc_rules::insert($array);
+        import_bonus_doc_rules::insert($array);
 
         $today = date('Y_m_d');
         //uplaod to server

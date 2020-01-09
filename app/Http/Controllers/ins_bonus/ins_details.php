@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\Http\Controllers\Controller;
+use App\import_bonus_doc_rules;
 use App\ins_details_calculation;
-use App\table_supplier_bonus_doc_rules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -336,7 +336,7 @@ class ins_details extends Controller
 
     private function get_official_rules($supplier)
     {
-        $ins_rules = table_supplier_bonus_doc_rules::whereNull('deleted_at')
+        $ins_rules = import_bonus_doc_rules::whereNull('deleted_at')
             ->where('supplier_code', '=', "{$supplier}")
             ->orderBy('doc_date', 'desc')
             ->get();

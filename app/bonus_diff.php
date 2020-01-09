@@ -4,9 +4,9 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class table_supplier_bonus_doc_rules extends Model
+class bonus_diff extends Model
 {
     //
-    protected $table = 'supplier_bonus_doc_rules';
+    protected $table = 'bonus_diff';
     public $timestamps = false;
 }

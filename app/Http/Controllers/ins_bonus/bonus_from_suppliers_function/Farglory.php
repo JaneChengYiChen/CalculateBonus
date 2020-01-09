@@ -53,7 +53,6 @@ class Farglory extends Controller
                 "created_by" => "Jane",
                 "bonus_rate" => substr($file_value, 131, 7),
                 "recent_pay_times" => substr($file_value, 74, 2),
-
             ));
 
         }

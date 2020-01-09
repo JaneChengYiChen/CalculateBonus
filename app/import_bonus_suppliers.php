@@ -4,9 +4,9 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class table_insurance_ori_bonus extends Model
+class import_bonus_suppliers extends Model
 {
     //
-    protected $table = 'insurance_ori_bonus';
+    protected $table = 'import_bonus_suppliers';
     public $timestamps = false;
 }
