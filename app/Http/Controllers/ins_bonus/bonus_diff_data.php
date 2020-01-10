@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\bonus_diff;
+use App\bonus_diff_exception;
 use App\Http\Controllers\Controller;
 use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
@@ -22,15 +23,17 @@ class bonus_diff_data extends Controller
 
         $prediction = $this::import_bonus_calculation($supplier, $start_period, $end_period);
         $original = $this::import_bonus_suppliers($supplier, $last_month, $next_ten_month);
+        $original_exception = $this::import_bonus_suppliers($supplier, $start_period, $end_period);
+
+        //DB:bonus_diff
         $array_insert = $this::finding_mapping_array($prediction, $original, $supplier);
+        $this::chunk_array_and_insert_table($array_insert, 'bonus_diff');
 
-        ini_set("memory_limit", "3000M");
-        $chunk = array_chunk($array_insert, 1000);
+        //DB:bonus_diff_exception
+        $exception_array = $this::original_exception($original_exception, $prediction);
+        $this::chunk_array_and_insert_table($exception_array, 'bonus_diff_exception');
 
-        foreach ($chunk as $chunk) {
-            bonus_diff::insert($chunk);
-        }
-        echo json_encode("success!");
+        return response()->json(['success!']);
 
     }
 
@@ -275,4 +278,53 @@ class bonus_diff_data extends Controller
         return $array_insert;
     }
 
+    private function original_exception($original_exception, $prediction)
+    {
+        $exception_array = [];
+        foreach ($original_exception as $original_exception) {
+            $period_ori = $original_exception->period;
+            $ins_no_ori = $original_exception->ins_no;
+            $bonus_ori = $original_exception->bonus;
+            $supplier = $original_exception->supplier_code;
+
+            $ins_no_arr = array_keys(array_column($prediction, 'ins_no'), $ins_no_ori);
+            $period_arr = array_keys(array_column($prediction, 'period'), $period_ori);
+            $intersect = array_values(array_intersect($ins_no_arr, $period_arr));
+
+            if (!$intersect) {
+                array_push($exception_array,
+                    array(
+                        "ins_no" => $ins_no_ori,
+                        "sup_code" => $supplier,
+                        "period_ori" => $period_ori,
+                        "bonus_ori" => $bonus_ori,
+                        "created_at" => date('Y:m:d H:m:s'),
+                        "created_by" => 'Jane',
+                        "deleted_at" => null,
+                        "deleted_by" => null,
+                    ));
+            }
+
+        }
+        return $exception_array;
+    }
+
+    private function chunk_array_and_insert_table($array, $table)
+    {
+        ini_set("memory_limit", "3000M");
+        $chunk = array_chunk($array, 1000);
+
+        switch ($table) {
+            case 'bonus_diff':
+                foreach ($chunk as $chunk) {
+                    bonus_diff::insert($chunk);
+                }
+                break;
+            case 'bonus_diff_exception':
+                foreach ($chunk as $chunk) {
+                    bonus_diff_exception::insert($chunk);
+                }
+                break;
+        }
+    }
 }
