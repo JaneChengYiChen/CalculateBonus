@@ -193,7 +193,7 @@ class ins_details extends Controller
             ins_details_calculation::insert($chunk);
         }
 
-        echo json_encode("success!");
+        return response()->json(['success!']);
 
     }
 

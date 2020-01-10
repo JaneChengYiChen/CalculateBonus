@@ -298,7 +298,7 @@ class bonus_diff_data extends Controller
                         "sup_code" => $supplier,
                         "period_ori" => $period_ori,
                         "bonus_ori" => $bonus_ori,
-                        "created_at" => date('Y:m:d H:m:s'),
+                        "created_at" => date('Y-m-d H:m:s'),
                         "created_by" => 'Jane',
                         "deleted_at" => null,
                         "deleted_by" => null,

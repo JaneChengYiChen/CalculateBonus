@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
-use App\import_bonus_suppliers;
 use App\import_bonus_doc_rules;
+use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
 
 class bonus extends Controller
@@ -46,7 +46,7 @@ class bonus extends Controller
         $upload_file_path = $upload_path . DIRECTORY_SEPARATOR . $doc_name;
         move_uploaded_file($file_path, $upload_file_path);
 
-        echo json_encode("success!");
+        return response()->json(['success!']);
     }
 
     public function rules(Request $request)
