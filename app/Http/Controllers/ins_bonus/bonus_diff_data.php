@@ -166,7 +166,7 @@ class bonus_diff_data extends Controller
                     $period_ori, $bonus_ori, $remark, $remark_ic, 'jane', $pay_type, $bonus_diff);
                 break;
             default:
-                $remark = implode(",", $remark);
+                $remark = implode("\n", $remark);
                 $bonus_diff = $bonus_ori - (int) $bonus;
                 $array_insert_after = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
                     $period_ori, $bonus_ori, $remark, $remark_ic, 'jane', $pay_type, $bonus_diff);
