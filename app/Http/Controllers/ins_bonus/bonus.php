@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Yuanta;
+use App\Imports\UsersImport;
 use App\import_bonus_doc_rules;
 use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
@@ -31,6 +33,15 @@ class bonus extends Controller
             case 300000734: //富邦人壽
                 $array = Fubon::bonus_ori($file, $doc_name, $period, $supplier);
                 break;
+            case 300006376: //元大人壽
+                $path1 = $request->file('file')->store('temp');
+                $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
+                $data = (new UsersImport)->toArray($path);
+                $array = Yuanta::bonus_ori($data, $doc_name, $period, $supplier);
+                break;
+            default:
+                return response()->json(['Failed!']);
+                exit;
         }
 
         ini_set("memory_limit", "1000M");
