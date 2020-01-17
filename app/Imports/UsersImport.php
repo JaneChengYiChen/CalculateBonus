@@ -2,7 +2,6 @@
 
 namespace App\Imports;
 
-use App\User;
 use Maatwebsite\Excel\Concerns\Importable;
 use Maatwebsite\Excel\Concerns\ToModel;
 
@@ -12,8 +11,9 @@ class UsersImport implements ToModel
 
     public function model(array $row)
     {
-        return new User([
-            'name' => $row[0],
-        ]);
-    }
+        return new user([
+            'UserName' => $row['UserName'],
+            'Password' => $row['Password'],
+            'date' => \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['保險公司發文日期']),
+        ]);}
 }
