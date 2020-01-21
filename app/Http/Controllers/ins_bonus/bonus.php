@@ -40,6 +40,8 @@ class bonus extends Controller
                 $data = (new UsersImport)->toArray($path);
                 $array = Yuanta::bonus_ori($data, $doc_name, $period, $supplier);
                 break;
+            case 300000722: //台灣人壽
+                break;
             case 300000749: //新光人壽
                 break;
             default:
@@ -80,6 +82,23 @@ class bonus extends Controller
                 && mb_strlen($file_value[3], "UTF-8") == strlen($file_value[3])) {
 
                 $data = $file_value;
+
+                //currency
+                $AUD = 1;
+                $CAD = 1;
+                $EUR = 1;
+                $GBP = 1;
+                $HKD = 1;
+                $JPY = 1;
+                $NTD = 1;
+                $NZD = 1;
+                $RMB = 1;
+                $USD = 1;
+                $ZAR = 1;
+
+                if ($data[10] == '外') {
+                    $NTD = 0;
+                }
 
                 //period_rules
                 if ($data[18] == 0) {
@@ -217,6 +236,17 @@ class bonus extends Controller
                     "Q" => $Q,
                     "S" => $S,
                     "Y" => $Y,
+                    "AUD" => $AUD,
+                    "CAD" => $CAD,
+                    "EUR" => $EUR,
+                    "GBP" => $GBP,
+                    "HKD" => $HKD,
+                    "JPY" => $JPY,
+                    "NTD" => $NTD,
+                    "NZD" => $NZD,
+                    "RMB" => $RMB,
+                    "USD" => $USD,
+                    "ZAR" => $ZAR,
                 ));
 
             }
