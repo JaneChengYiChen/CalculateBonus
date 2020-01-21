@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ins_bonus;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TaiwanLife;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Yuanta;
 use App\Imports\UsersImport;
@@ -41,6 +42,10 @@ class bonus extends Controller
                 $array = Yuanta::bonus_ori($data, $doc_name, $period, $supplier);
                 break;
             case 300000722: //台灣人壽
+                $path1 = $request->file('file')->store('temp');
+                $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
+                $data = (new UsersImport)->toArray($path);
+                $array = TaiwanLife::bonus_ori($data, $doc_name, $period, $supplier);
                 break;
             case 300000749: //新光人壽
                 break;
