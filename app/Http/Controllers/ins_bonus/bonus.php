@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\AIA;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
+use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\ShinKong;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TaiwanLife;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
 use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Yuanta;
@@ -48,6 +50,13 @@ class bonus extends Controller
                 $array = TaiwanLife::bonus_ori($data, $doc_name, $period, $supplier);
                 break;
             case 300000749: //新光人壽
+                $array = ShinKong::bonus_ori($file, $doc_name, $period, $supplier);
+                break;
+            case 300000717: //友邦人壽
+                $path1 = $request->file('file')->store('temp');
+                $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
+                $data = (new UsersImport)->toArray($path);
+                $array = AIA::bonus_ori($data, $doc_name, $period, $supplier);
                 break;
             default:
                 return response()->json(['Failed!']);
@@ -116,6 +125,7 @@ class bonus extends Controller
                 $rule_types = ['NNN', 'AAA', 'BBB', 'CCC'];
 
                 $empty_detecter = array();
+                $rules_types_detecter = array();
                 foreach ($rule_types as $rule_types) {
                     $start_period = array_keys($data, $rule_types);
                     array_push($empty_detecter, $start_period);
@@ -124,6 +134,12 @@ class bonus extends Controller
                         $arr_num = (int) count($start_period) - 1;
                         $rules_start_period = $start_period[$arr_num] - 20;
                         $rules_types_insert = $rule_types;
+                        if ($rules_start_period > 0) {
+                            array_push($rules_types_detecter, array(
+                                'rules_start_period' => $rules_start_period,
+                                'rules_types_insert' => $rules_types_insert,
+                            ));
+                        }
 
                     }
                 }
@@ -131,6 +147,9 @@ class bonus extends Controller
                 if (count(array_filter($empty_detecter)) == 0) {
                     $rules_start_period = 0;
                     $rules_types_insert = 'NNN';
+                } else {
+                    $rules_start_period = $rules_types_detecter[0]["rules_start_period"];
+                    $rules_types_insert = $rules_types_detecter[0]["rules_types_insert"];
                 }
 
                 //product_code

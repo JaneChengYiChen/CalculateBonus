@@ -22,7 +22,6 @@ class ins_details extends Controller
         $ins_rules = $this::get_official_rules($supplier);
         $ins_detail_insert_arr = [];
         foreach ($ins_details as $ins_details_keys) {
-
             $ins_code = $ins_details_keys->Ins_Code; //商品編號
             $YPeriod = (int) $ins_details_keys->YPeriod; //應繳年期
             $Effe_Date = strtotime($ins_details_keys->Effe_Date); //生效日
@@ -37,6 +36,7 @@ class ins_details extends Controller
             $pro_name = $ins_details_keys->Pro_Name; //商品名稱
             $remark = $ins_details_keys->remark; //備註
             $crc = $ins_details_keys->CRC; //幣別
+            $payer_age = $ins_details_keys->payer_age; //要保人年齡
 
             switch ($supplier) {
                 case ($supplier == '300000734'): //富邦人壽，取前四碼
@@ -44,6 +44,12 @@ class ins_details extends Controller
                     break;
                 case ($supplier == '300000722'): //台灣人壽，取前六碼
                     $ins_code_search = substr($ins_code, 0, 6);
+                    break;
+                case ($supplier == '300000749'): //新光人壽，取前五碼
+                    $ins_code_search = substr($ins_code, 0, 5);
+                    break;
+                case ($supplier == '300000717'): //友邦人壽，取前七碼
+                    $ins_code_search = substr($ins_code, 0, 7);
                     break;
                 default:
                     $ins_code_search = substr($ins_code, 0, 3);
@@ -78,7 +84,7 @@ class ins_details extends Controller
             } else {
                 //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
                 if ($diff > $YPeriod && !empty($product_arr_initial)) {
-                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'follow_main_period', $PayType, $pro_name, $crc);
+                    $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'follow_main_period', $PayType, $pro_name, $crc, $payer_age);
 
                     //如果主約繳費年期大於保單到現在的時間，表示可以依照主約的繳費年期計算
                     if (empty($rule_arr) != true && $main_period >= $diff) {
@@ -109,7 +115,7 @@ class ins_details extends Controller
                 //caseC:如果至今繳費年期小於應繳年期，表示保單還沒過期
                 else {
                     $is_expired = 0;
-                    $rule_arr = $this::is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, 'exception', $pro_name, $crc);
+                    $rule_arr = $this::is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, 'exception', $pro_name, $crc, $payer_age);
 
                     //case1: 公文有商品，不過日期不符合公文日期 ==> 納入除
                     //納入除後，日期不符合/條件不符合 ==> bonus rate is 0
@@ -121,7 +127,7 @@ class ins_details extends Controller
                             $rule_arr = $blank_rules;
                         } else {
                             $product_arr_initial = [];
-                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'exception', $PayType, $pro_name, $crc);
+                            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'exception', $PayType, $pro_name, $crc, $payer_age);
 
                             if (empty($rule_arr)) {
                                 $rate = 0;
@@ -230,7 +236,8 @@ class ins_details extends Controller
                 ins.Ins_No = Insurance.Ins_No
                 AND ins.code = Insurance.Code
                 AND Ins_Content.Main = 1) AS main_period, ic.FYP * ic.crcrate FYP, ic.FYB, ic.FYA, p.Ins_Code, p.Pro_Name, p.InsType, p.FullName, (DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1 diff, F.first_pay_period,
-            RIGHT(F.first_pay_period, 2) first_pay_month
+            RIGHT(F.first_pay_period, 2) first_pay_month,
+            year(ins.Receive_Date) - year(ic.birthday) payer_age
         FROM
             Insurance ins
             LEFT JOIN (
@@ -307,7 +314,8 @@ class ins_details extends Controller
                     a.YPeriod,
                     b.CRC,
                     b.Audit,
-                    b.Void
+                    b.Void,
+                    cus.Birthday
                 FROM
                     dbo.Ins_Content AS a
                     INNER JOIN Insurance AS b ON a.MainCode = b.Code
@@ -315,6 +323,7 @@ class ins_details extends Controller
                     LEFT OUTER JOIN Product AS d ON a.Pro_No = d.Pro_No
                     LEFT OUTER JOIN Ins_Type AS e ON d.InsType = e.Type
                     INNER JOIN Supplier AS f ON b.SupCode = f.SupCode
+                    left join Customer as cus on b.PayerCode = cus.code
                 WHERE
                     c.CNO <> 10000) ic ON ins.code = ic.MainCode
             LEFT JOIN Product p ON ic.Pro_No = p.Pro_No
@@ -349,8 +358,11 @@ class ins_details extends Controller
         return $ins_rules->toArray();
     }
 
-    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $situation, $PayType, $pro_name, $crc)
+    private function rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $situation, $PayType, $pro_name, $crc, $payer_age)
     {
+        $payer_age_lower_limit = range(0, $payer_age);
+        $payer_age_upper_limit = range($payer_age, 100);
+
         if ($situation == 'exception') {
             $product_arr = empty($product_arr_initial)
             ? array_keys(array_column($ins_rules, 'product_code'), 'exception') : $product_arr_initial;
@@ -366,8 +378,10 @@ class ins_details extends Controller
         $upper_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'y_period_upper_limit'), $upper_limit));
         $paytype_arr = array_keys(array_column($ins_rules, $PayType), '1');
         $currency = array_keys(array_column($ins_rules, $crc), '1');
+        $payer_age_lower_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'insured_age_lower_limit'), $payer_age_lower_limit));
+        $payer_age_upper_limit_arr = array_keys(array_intersect(array_column($ins_rules, 'insured_age_upper_limit'), $payer_age_upper_limit));
 
-        $rule_set = array_intersect($product_arr, $lower_limit_arr, $upper_limit_arr, $paytype_arr, $currency);
+        $rule_set = array_intersect($product_arr, $lower_limit_arr, $upper_limit_arr, $paytype_arr, $currency, $payer_age_lower_limit_arr, $payer_age_upper_limit_arr);
 
         $rule_arr = [];
 
@@ -446,18 +460,18 @@ class ins_details extends Controller
         return $rate;
     }
 
-    private function is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, $scenario, $pro_name, $crc)
+    private function is_contract($is_main, $product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $PayType, $scenario, $pro_name, $crc, $payer_age)
     {
 
         if ($is_main == 1) { //如果是主約
-            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType, $pro_name, $crc);
+            $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType, $pro_name, $crc, $payer_age);
 
         } else { //default 全是附約
             //如果附約不在規則公文中，檢查是否有符合全附約適用的規則
-            $contract_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'is_main', $PayType, $pro_name, $crc);
+            $contract_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, 'is_main', $PayType, $pro_name, $crc, $payer_age);
 
             if (empty($contract_arr)) { //如果沒有適用的規則，丟進exception
-                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType, $pro_name, $crc);
+                $rule_arr = $this::rules_setting($product_arr_initial, $ins_rules, $lower_limit, $upper_limit, $Effe_Date, $scenario, $PayType, $pro_name, $crc, $payer_age);
             } else {
                 $rule_arr = $contract_arr;
             }
