@@ -16,10 +16,16 @@ use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
 use \PhpOffice\PhpSpreadsheet\Shared\Date;
 
-class bonus extends Controller
+class BonusController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+    }
+
     public function supplier(Request $request)
     {
+
         $supplier = $request->supplier;
         $period = $request->period;
         $file_path = $request->file->path();
@@ -81,6 +87,7 @@ class bonus extends Controller
 
     public function rules(Request $request)
     {
+
         $supplier = $request->supplier;
         $file_path = $request->file->path();
         $doc_name = $request->file->getClientOriginalName();

@@ -8,7 +8,7 @@ use App\ins_details_calculation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class ins_details extends Controller
+class CalculationController extends Controller
 {
 
     public function query(Request $request)

@@ -9,7 +9,7 @@ use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class bonus_diff_data extends Controller
+class DiffController extends Controller
 {
     public function mapping(Request $request)
     {
