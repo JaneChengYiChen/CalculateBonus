@@ -35,7 +35,12 @@ class BonusController extends Controller
 
         switch ($supplier) {
             case 300000737: //全球人壽
-                $array = TransGlobe::bonus_ori($file, $doc_name, $period, $supplier);
+                if ((preg_match('/csv/i', strtolower($doc_name)))) {
+                    $array = TransGlobe::bonusOri($file, $doc_name, $period, $supplier);
+                } else { //txt檔
+                    $array = TransGlobe::bonusOriTxt($file, $doc_name, $period, $supplier);
+                }
+
                 break;
             case 300000735: //遠雄人壽
                 $array = Farglory::bonus_ori($file, $doc_name, $period, $supplier);
@@ -77,7 +82,8 @@ class BonusController extends Controller
 
         $today = date('Y_m_d');
         //uplaod to server
-        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . "supplier_bonus" . DIRECTORY_SEPARATOR . $today;
+        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR .
+            $supplier . DIRECTORY_SEPARATOR . "supplier_bonus" . DIRECTORY_SEPARATOR . $today;
         exec("mkdir {$upload_path}");
         $upload_file_path = $upload_path . DIRECTORY_SEPARATOR . $doc_name;
         move_uploaded_file($file_path, $upload_file_path);
@@ -98,12 +104,9 @@ class BonusController extends Controller
 
         $array = array();
         foreach ($datas[0] as $file_key => $file_value) {
-
             if (count($file_value) > 50 && empty($file_value[3]) == false
                 && mb_strlen($file_value[3], "UTF-8") == strlen($file_value[3])) {
-
                 $data = $file_value;
-
                 //currency
                 $AUD = 1;
                 $CAD = 1;
@@ -147,7 +150,6 @@ class BonusController extends Controller
                                 'rules_types_insert' => $rules_types_insert,
                             ));
                         }
-
                     }
                 }
 
@@ -279,7 +281,6 @@ class BonusController extends Controller
                     "USD" => $USD,
                     "ZAR" => $ZAR,
                 ));
-
             }
         }
         //將先前的規則改為delete
@@ -292,12 +293,16 @@ class BonusController extends Controller
 
         $today = date('Y_m_d');
         //uplaod to server
-        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today;
+        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier
+            . DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today;
+
         exec("mkdir {$upload_path}");
-        $upload_file_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier . DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today . DIRECTORY_SEPARATOR . $doc_name;
+
+        $upload_file_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier .
+            DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today . DIRECTORY_SEPARATOR . $doc_name;
+
         move_uploaded_file($file_path, $upload_file_path);
 
         return response()->json(['success!']);
-
     }
 }

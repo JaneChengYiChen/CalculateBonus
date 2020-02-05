@@ -21,23 +21,22 @@ class DiffController extends Controller
         $last_month = $this::date_formate($start_period)[-1];
         $next_ten_month = $this::date_formate($end_period)[10];
 
-        $prediction = $this::import_bonus_calculation($supplier, $start_period, $end_period);
-        $original = $this::import_bonus_suppliers($supplier, $last_month, $next_ten_month);
-        $original_exception = $this::import_bonus_suppliers($supplier, $start_period, $end_period);
+        $prediction = $this::importBonusCalculation($supplier, $start_period, $end_period);
+        $original = $this::importBonusSuppliers($supplier, $last_month, $next_ten_month);
+        $originalException = $this::importBonusSuppliers($supplier, $start_period, $end_period);
 
         //DB:bonus_diff
-        $array_insert = $this::finding_mapping_array($prediction, $original, $supplier);
-        $this::chunk_array_and_insert_table($array_insert, 'bonus_diff');
+        $array_insert = $this::findingMappingArray($prediction, $original, $supplier);
+        $this::chunkArrayAndInsertTable($array_insert, 'bonus_diff');
 
         //DB:bonus_diff_exception
-        $exception_array = $this::original_exception($original_exception, $prediction);
-        $this::chunk_array_and_insert_table($exception_array, 'bonus_diff_exception');
+        $exception_array = $this::originalException($originalException, $prediction);
+        $this::chunkArrayAndInsertTable($exception_array, 'bonus_diff_exception');
 
         return response()->json(['success!']);
-
     }
 
-    private function import_bonus_calculation($supplier, $start_period, $end_period)
+    private function importBonusCalculation($supplier, $start_period, $end_period)
     {
         ini_set("memory_limit", "3000M");
         $calculation_data = DB::connection('mysql')
@@ -78,7 +77,7 @@ class DiffController extends Controller
         return $calculation_data;
     }
 
-    private function import_bonus_suppliers($supplier, $start_period, $end_period)
+    private function importBonusSuppliers($supplier, $start_period, $end_period)
     {
         ini_set("memory_limit", "3000M");
         $supplier_data = DB::connection('mysql')
@@ -88,7 +87,7 @@ class DiffController extends Controller
             ins_no,
             sum(bonus) bonus
         FROM
-            import_bonus_suppliers
+            importBonusSuppliers
         WHERE
             supplier_code = '{$supplier}'
             AND `period` >= '{$start_period}'
@@ -103,7 +102,7 @@ class DiffController extends Controller
         return $supplier_data;
     }
 
-    private function date_formate($period)
+    private function dateFormate($period)
     {
         $year = substr($period, 0, 4);
         $month = substr($period, 4, 2);
@@ -130,9 +129,20 @@ class DiffController extends Controller
         return $periods;
     }
 
-    private function array_push_mapping($array_insert, $ins_no, $supplier,
-        $period, $bonus, $period_ori, $bonus_ori, $remark, $remark_ic,
-        $created_by, $pay_type, $bonus_diff) {
+    private function arrayPushMapping(
+        $array_insert,
+        $ins_no,
+        $supplier,
+        $period,
+        $bonus,
+        $period_ori,
+        $bonus_ori,
+        $remark,
+        $remark_ic,
+        $created_by,
+        $pay_type,
+        $bonus_diff
+    ) {
         array_push($array_insert, array(
             "ins_no" => $ins_no,
             "sup_code" => $supplier,
@@ -153,36 +163,93 @@ class DiffController extends Controller
         return $array_insert;
     }
 
-    private function diff_insert_condition($remark, $array_insert, $ins_no,
-        $supplier, $period, $bonus, $pay_type, $period_ori, $bonus_ori, $remark_ic) {
+    private function diffInsertCondition(
+        $remark,
+        $array_insert,
+        $ins_no,
+        $supplier,
+        $period,
+        $bonus,
+        $pay_type,
+        $period_ori,
+        $bonus_ori,
+        $remark_ic
+    ) {
 
         switch (count($remark)) {
             case 0: //如果前1後2沒有資料
                 $bonus_diff = 0 - (int) $bonus;
-                $array_insert_after = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
-                    null, null, null, $remark_ic, 'jane', $pay_type, $bonus_diff);
+                $array_insert_after = $this::arrayPushMapping(
+                    $array_insert,
+                    $ins_no,
+                    $supplier,
+                    $period,
+                    $bonus,
+                    null,
+                    null,
+                    null,
+                    $remark_ic,
+                    'jane',
+                    $pay_type,
+                    $bonus_diff
+                );
                 break;
             case 1: //不用寫remark
                 $remark = null;
                 $bonus_diff = $bonus_ori - (int) $bonus;
-                $array_insert_after = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
-                    $period_ori, $bonus_ori, $remark, $remark_ic, 'jane', $pay_type, $bonus_diff);
+                $array_insert_after = $this::arrayPushMapping(
+                    $array_insert,
+                    $ins_no,
+                    $supplier,
+                    $period,
+                    $bonus,
+                    $period_ori,
+                    $bonus_ori,
+                    $remark,
+                    $remark_ic,
+                    'jane',
+                    $pay_type,
+                    $bonus_diff
+                );
                 break;
             default:
                 $remark = implode(",", $remark);
                 $bonus_diff = $bonus_ori - (int) $bonus;
-                $array_insert_after = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
-                    $period_ori, $bonus_ori, $remark, $remark_ic, 'jane', $pay_type, $bonus_diff);
+                $array_insert_after = $this::arrayPushMapping(
+                    $array_insert,
+                    $ins_no,
+                    $supplier,
+                    $period,
+                    $bonus,
+                    $period_ori,
+                    $bonus_ori,
+                    $remark,
+                    $remark_ic,
+                    'jane',
+                    $pay_type,
+                    $bonus_diff
+                );
                 break;
         }
 
         return $array_insert_after;
     }
 
-    private function bonus_period_ranging($period_formate, $original, $ins_no_arr,
-        $last_period, $min_upper_period, $max_upper_period, $array_insert, $ins_no,
-        $supplier, $period, $bonus, $pay_type, $remark_ic) {
-
+    private function bonusPeriodRanging(
+        $period_formate,
+        $original,
+        $ins_no_arr,
+        $last_period,
+        $min_upper_period,
+        $max_upper_period,
+        $array_insert,
+        $ins_no,
+        $supplier,
+        $period,
+        $bonus,
+        $pay_type,
+        $remark_ic
+    ) {
         $bonus_ori = 0;
         $period_ori = '';
         $remark = array();
@@ -191,7 +258,6 @@ class DiffController extends Controller
         foreach ($period_formate as $period_formate_key => $period_formate_value) {
             if ($period_formate_key == $last_period ||
                 ($period_formate_key >= $min_upper_period && $period_formate_key <= $max_upper_period)) {
-
                 $month_arr = array_keys(array_column($original, 'period'), $period_formate_value);
                 $intersect = array_values(array_intersect($ins_no_arr, $month_arr));
 
@@ -200,18 +266,26 @@ class DiffController extends Controller
                     $period_ori = (string) $original[$intersect[0]]->period;
                     array_push($remark, $period_ori . ':' . $original[$intersect[0]]->bonus);
                 }
-
             }
         }
 
-        $array_insert = $this::diff_insert_condition($remark, $array_insert, $ins_no,
-            $supplier, $period, $bonus, $pay_type, $period_ori, $bonus_ori, $remark_ic);
+        $array_insert = $this::diffInsertCondition(
+            $remark,
+            $array_insert,
+            $ins_no,
+            $supplier,
+            $period,
+            $bonus,
+            $pay_type,
+            $period_ori,
+            $bonus_ori,
+            $remark_ic
+        );
 
         return $array_insert;
-
     }
 
-    private function finding_mapping_array($prediction, $original, $supplier)
+    private function findingMappingArray($prediction, $original, $supplier)
     {
         $array_insert = [];
 
@@ -231,68 +305,166 @@ class DiffController extends Controller
 
             if ($intersect) { //當月有該保單的資料
                 $bonus_diff = (int) $original[$intersect[0]]->bonus - (int) $bonus;
-                $array_insert = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
-                    $original[$intersect[0]]->period, $original[$intersect[0]]->bonus,
-                    null, $remark_ic, 'jane', $pay_type, $bonus_diff);
-
+                $array_insert = $this::arrayPushMapping(
+                    $array_insert,
+                    $ins_no,
+                    $supplier,
+                    $period,
+                    $bonus,
+                    $original[$intersect[0]]->period,
+                    $original[$intersect[0]]->bonus,
+                    null,
+                    $remark_ic,
+                    'jane',
+                    $pay_type,
+                    $bonus_diff
+                );
             } elseif (!empty($ins_no_arr)) { //當月沒有該保單的資料，但是資料中有該保單的資料
                 switch ($pay_type) {
                     case 'M': //月繳：比對當月 //如果當月沒有，那就是沒有
                         $bonus_diff = 0 - (int) $bonus;
-                        $array_insert = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus, null, null, null, $remark_ic, 'jane', $pay_type, $bonus_diff);
+                        $array_insert = $this::arrayPushMapping(
+                            $array_insert,
+                            $ins_no,
+                            $supplier,
+                            $period,
+                            $bonus,
+                            null,
+                            null,
+                            null,
+                            $remark_ic,
+                            'jane',
+                            $pay_type,
+                            $bonus_diff
+                        );
                         break;
                     case 'D': //比對當月 //如果當月沒有，那就是沒有
                         $bonus_diff = 0 - (int) $bonus;
-                        $array_insert = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus, null, null, null, $remark_ic, 'jane', $pay_type, $bonus_diff);
+                        $array_insert = $this::arrayPushMapping(
+                            $array_insert,
+                            $ins_no,
+                            $supplier,
+                            $period,
+                            $bonus,
+                            null,
+                            null,
+                            null,
+                            $remark_ic,
+                            'jane',
+                            $pay_type,
+                            $bonus_diff
+                        );
                         break;
                     case 'Y': //年繳：前1後10
                         //前1後2(大於等於1且小於等於10)
 
-                        $array_insert = $this::bonus_period_ranging($period_formate, $original, $ins_no_arr,
-                            -1, 1, 10, $array_insert, $ins_no, $supplier, $period, $bonus, $pay_type, $remark_ic);
+                        $array_insert = $this::bonusPeriodRanging(
+                            $period_formate,
+                            $original,
+                            $ins_no_arr,
+                            -1,
+                            1,
+                            10,
+                            $array_insert,
+                            $ins_no,
+                            $supplier,
+                            $period,
+                            $bonus,
+                            $pay_type,
+                            $remark_ic
+                        );
                         break;
                     case 'S': //半年繳：前1後4
                         //前1後2(大於等於1且小於等於4)
-                        $array_insert = $this::bonus_period_ranging($period_formate, $original, $ins_no_arr,
-                            -1, 1, 4, $array_insert, $ins_no, $supplier, $period, $bonus, $pay_type, $remark_ic);
+                        $array_insert = $this::bonusPeriodRanging(
+                            $period_formate,
+                            $original,
+                            $ins_no_arr,
+                            -1,
+                            1,
+                            4,
+                            $array_insert,
+                            $ins_no,
+                            $supplier,
+                            $period,
+                            $bonus,
+                            $pay_type,
+                            $remark_ic
+                        );
                         break;
                     case 'Q': //季繳：前1後2
                         //前1後2(大於等於1且小於等於2)
-                        $array_insert = $this::bonus_period_ranging($period_formate, $original, $ins_no_arr,
-                            -1, 1, 2, $array_insert, $ins_no, $supplier, $period, $bonus, $pay_type, $remark_ic);
+                        $array_insert = $this::bonusPeriodRanging(
+                            $period_formate,
+                            $original,
+                            $ins_no_arr,
+                            -1,
+                            1,
+                            2,
+                            $array_insert,
+                            $ins_no,
+                            $supplier,
+                            $period,
+                            $bonus,
+                            $pay_type,
+                            $remark_ic
+                        );
                         break;
                     default:
                         $bonus_diff = 0 - (int) $bonus;
-                        $array_insert = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
-                            null, null, null, $remark_ic, 'jane', $pay_type, $bonus_diff);
+                        $array_insert = $this::arrayPushMapping(
+                            $array_insert,
+                            $ins_no,
+                            $supplier,
+                            $period,
+                            $bonus,
+                            null,
+                            null,
+                            null,
+                            $remark_ic,
+                            'jane',
+                            $pay_type,
+                            $bonus_diff
+                        );
                 }
-
             } else { //origin中完全沒有該保單的資料
                 $bonus_diff = 0 - (int) $bonus;
-                $array_insert = $this::array_push_mapping($array_insert, $ins_no, $supplier, $period, $bonus,
-                    null, null, null, $remark_ic, 'jane', $pay_type, $bonus_diff);
-
+                $array_insert = $this::arrayPushMapping(
+                    $array_insert,
+                    $ins_no,
+                    $supplier,
+                    $period,
+                    $bonus,
+                    null,
+                    null,
+                    null,
+                    $remark_ic,
+                    'jane',
+                    $pay_type,
+                    $bonus_diff
+                );
             }
         }
 
         return $array_insert;
     }
 
-    private function original_exception($original_exception, $prediction)
+    private function originalException($originalException, $prediction)
     {
         $exception_array = [];
-        foreach ($original_exception as $original_exception) {
-            $period_ori = $original_exception->period;
-            $ins_no_ori = $original_exception->ins_no;
-            $bonus_ori = $original_exception->bonus;
-            $supplier = $original_exception->supplier_code;
+        foreach ($originalException as $originalException) {
+            $period_ori = $originalException->period;
+            $ins_no_ori = $originalException->ins_no;
+            $bonus_ori = $originalException->bonus;
+            $supplier = $originalException->supplier_code;
 
             $ins_no_arr = array_keys(array_column($prediction, 'ins_no'), $ins_no_ori);
             $period_arr = array_keys(array_column($prediction, 'period'), $period_ori);
             $intersect = array_values(array_intersect($ins_no_arr, $period_arr));
 
             if (!$intersect) {
-                array_push($exception_array,
+                array_push(
+                    $exception_array,
                     array(
                         "ins_no" => $ins_no_ori,
                         "sup_code" => $supplier,
@@ -302,14 +474,14 @@ class DiffController extends Controller
                         "created_by" => 'Jane',
                         "deleted_at" => null,
                         "deleted_by" => null,
-                    ));
+                    )
+                );
             }
-
         }
         return $exception_array;
     }
 
-    private function chunk_array_and_insert_table($array, $table)
+    private function chunkArrayAndInsertTable($array, $table)
     {
         ini_set("memory_limit", "3000M");
         $chunk = array_chunk($array, 1000);
