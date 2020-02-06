@@ -38,7 +38,7 @@ class TransGlobe extends Controller
 
         if (strlen($data[2]) > 10) {
             $bonus = (int) $data[6] * (int) $data[7];
-            $premium_ori = (int) $data[8] / (int) $data[6];
+            $premium_ori = null;
             $num_zero = 30 - strlen($data[5]);
             $zeros = str_repeat('0', $num_zero);
             $combination = $zeros . $data[5];
