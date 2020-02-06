@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 //新光人壽
 class ShinKong extends Controller
 {
-    public static function bonus_ori($file, $doc_name, $period, $supplier)
+    public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
 

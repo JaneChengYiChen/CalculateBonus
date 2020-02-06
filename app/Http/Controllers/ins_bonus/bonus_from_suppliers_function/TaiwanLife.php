@@ -7,11 +7,10 @@ use App\Http\Controllers\Controller;
 //台灣人壽
 class TaiwanLife extends Controller
 {
-    public static function bonus_ori($file, $doc_name, $period, $supplier)
+    public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
         foreach ($file[0] as $file_key => $file_value) {
-
             $data = $file_value;
             if (count($data) > 20 && \is_numeric($data[5])) {
                 array_push($array, array(

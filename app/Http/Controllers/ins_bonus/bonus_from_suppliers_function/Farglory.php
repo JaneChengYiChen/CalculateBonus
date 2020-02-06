@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 //遠雄人壽
 class Farglory extends Controller
 {
-    public static function bonus_ori($file, $doc_name, $period, $supplier)
+    public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
         $file = mb_convert_encoding($file, 'UTF-8', 'big5');

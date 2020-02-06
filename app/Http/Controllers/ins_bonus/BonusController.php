@@ -40,55 +40,59 @@ class BonusController extends Controller
                 } else {
                     return response()->json(['Please Convert File to CSV Format!']);
                 }
-
                 break;
             case 300000735: //遠雄人壽
                 $array = Farglory::bonus_ori($file, $doc_name, $period, $supplier);
                 break;
             case 300000734: //富邦人壽
-                $array = Fubon::bonus_ori($file, $doc_name, $period, $supplier);
+                $array = Fubon::bonusOri($file, $doc_name, $period, $supplier);
                 break;
             case 300006376: //元大人壽
                 $path1 = $request->file('file')->store('temp');
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);
-                $array = Yuanta::bonus_ori($data, $doc_name, $period, $supplier);
+                $array = Yuanta::bonusOri($data, $doc_name, $period, $supplier);
                 break;
             case 300000722: //台灣人壽
                 $path1 = $request->file('file')->store('temp');
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);
-                $array = TaiwanLife::bonus_ori($data, $doc_name, $period, $supplier);
+                $array = TaiwanLife::bonusOri($data, $doc_name, $period, $supplier);
                 break;
             case 300000749: //新光人壽
-                $array = ShinKong::bonus_ori($file, $doc_name, $period, $supplier);
+                $array = ShinKong::bonusOri($file, $doc_name, $period, $supplier);
                 break;
             case 300000717: //友邦人壽
                 $path1 = $request->file('file')->store('temp');
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);
-                $array = AIA::bonus_ori($data, $doc_name, $period, $supplier);
+                $array = AIA::bonusOri($data, $doc_name, $period, $supplier);
                 break;
             default:
                 return response()->json(['Failed! Please Check Your Input Info!']);
                 exit;
         }
 
-        ini_set("memory_limit", "1000M");
-        $chunk = array_chunk($array, 1000);
-        foreach ($chunk as $chunk) {
-            import_bonus_suppliers::insert($chunk);
+        switch ($array) {
+            case is_null($array):
+                return response()->json(['Empty insert!']);
+            default:
+                ini_set("memory_limit", "1000M");
+                $chunk = array_chunk($array, 1000);
+                foreach ($chunk as $chunk) {
+                    import_bonus_suppliers::insert($chunk);
+                }
+
+                $today = date('Y_m_d');
+                //uplaod to server
+                $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR .
+                    $supplier . DIRECTORY_SEPARATOR . "supplier_bonus" . DIRECTORY_SEPARATOR . $today;
+                exec("mkdir {$upload_path}");
+                $upload_file_path = $upload_path . DIRECTORY_SEPARATOR . $doc_name;
+                move_uploaded_file($file_path, $upload_file_path);
+
+                return response()->json(['success!']);
         }
-
-        $today = date('Y_m_d');
-        //uplaod to server
-        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR .
-            $supplier . DIRECTORY_SEPARATOR . "supplier_bonus" . DIRECTORY_SEPARATOR . $today;
-        exec("mkdir {$upload_path}");
-        $upload_file_path = $upload_path . DIRECTORY_SEPARATOR . $doc_name;
-        move_uploaded_file($file_path, $upload_file_path);
-
-        return response()->json(['success!']);
     }
 
     public function rules(Request $request)
