@@ -34,11 +34,11 @@ class BonusController extends Controller
         $file = file_get_contents($file_path);
 
         switch ($supplier) {
-            case 300000737: //全球人壽
+            case 300000737: //全球人壽 ---> all csv
                 if ((preg_match('/csv/i', strtolower($doc_name)))) {
                     $array = TransGlobe::bonusOri($file, $doc_name, $period, $supplier);
-                } else { //txt檔
-                    $array = TransGlobe::bonusOriTxt($file, $doc_name, $period, $supplier);
+                } else {
+                    return response()->json(['Please Convert File to CSV Format!']);
                 }
 
                 break;
@@ -70,7 +70,7 @@ class BonusController extends Controller
                 $array = AIA::bonus_ori($data, $doc_name, $period, $supplier);
                 break;
             default:
-                return response()->json(['Failed!']);
+                return response()->json(['Failed! Please Check Your Input Info!']);
                 exit;
         }
 

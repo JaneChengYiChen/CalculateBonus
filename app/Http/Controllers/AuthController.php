@@ -28,11 +28,9 @@ class AuthController extends Controller
             ]);
             $token = auth()->login($user);
             return $this->respondWithToken($token);
-
         } else {
             return response()->json(['The account has been registered!']);
         }
-
     }
 
     public function login()
@@ -44,7 +42,6 @@ class AuthController extends Controller
         }
 
         return response()->json(['status' => 0, 'token' => $token]);
-
     }
 
     public function me()

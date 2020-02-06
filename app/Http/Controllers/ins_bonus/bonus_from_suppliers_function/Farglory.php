@@ -12,7 +12,6 @@ class Farglory extends Controller
         $array = array();
         $file = mb_convert_encoding($file, 'UTF-8', 'big5');
         foreach (explode("\n", $file) as $file_key => $file_value) {
-
             $handle_id = substr($file_value, 11, 10);
             $handle_name = substr($file_value, 21, 9);
             $insured_id = substr($file_value, 45, 10);
@@ -54,10 +53,8 @@ class Farglory extends Controller
                 "bonus_rate" => substr($file_value, 131, 7),
                 "recent_pay_times" => substr($file_value, 74, 2),
             ));
-
         }
 
         return $array;
     }
-
 }
