@@ -295,7 +295,7 @@ class DiffController extends Controller
             $bonus = $prediction_arr->bonus;
             $remark_ic = $prediction_arr->remark;
 
-            $period_formate = $this::date_formate($period);
+            $period_formate = $this::dateFormate($period);
 
             //判斷當月有沒有資料
             $ins_no_arr = array_keys(array_column($original, 'ins_no'), $ins_no);
