@@ -5,7 +5,6 @@ namespace App\Http\Controllers\ins_bonus;
 use App\bonus_diff;
 use App\bonus_diff_exception;
 use App\Http\Controllers\Controller;
-use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -87,7 +86,7 @@ class DiffController extends Controller
             ins_no,
             sum(bonus) bonus
         FROM
-            importBonusSuppliers
+            import_bonus_suppliers
         WHERE
             supplier_code = '{$supplier}'
             AND `period` >= '{$start_period}'
