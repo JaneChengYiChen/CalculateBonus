@@ -15,9 +15,9 @@ class Farglory extends Controller
         $file = mb_convert_encoding($file, 'UTF-8', 'big5');
         foreach (explode("\n", $file) as $file_key => $file_value) {
             $handle_id = substr($file_value, 11, 10);
-            $handle_name = null;
+            $handle_name = substr($file_value, 21, 9);
             $insured_id = null;
-            $insured_name = substr($file_value, 55, 9);
+            $insured_name = null;
             $ins_no = substr($file_value, 35, 10);
             $effe_date = substr($file_value, 88, 9);
             $ins_type = substr($file_value, 82, 6);
