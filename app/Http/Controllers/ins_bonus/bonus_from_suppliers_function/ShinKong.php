@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 //新光人壽
 class ShinKong extends Controller
@@ -10,7 +11,7 @@ class ShinKong extends Controller
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
-
+        $creator = Auth::guard('api')->user()->name;
         $file = mb_convert_encoding($file, "UTF-8", "BIG5");
 
         foreach (explode("\n", $file) as $file_key => $file_value) {
@@ -58,7 +59,7 @@ class ShinKong extends Controller
                     "crc" => $crc,
                     "crc_rate" => $crc_rate,
                     "created_at" => date('Y-m-d H:i:s'),
-                    "created_by" => "Jane",
+                    "created_by" => $creator,
                     "bonus_rate" => $bonus_rate,
                     "recent_pay_times" => $recent_pay_times,
                 ));

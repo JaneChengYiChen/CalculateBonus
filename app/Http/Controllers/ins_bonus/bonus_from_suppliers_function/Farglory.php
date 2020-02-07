@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 //遠雄人壽
 class Farglory extends Controller
@@ -10,6 +11,7 @@ class Farglory extends Controller
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
+        $creator = Auth::guard('api')->user()->name;
         $file = mb_convert_encoding($file, 'UTF-8', 'big5');
         foreach (explode("\n", $file) as $file_key => $file_value) {
             $handle_id = substr($file_value, 11, 10);
@@ -49,7 +51,7 @@ class Farglory extends Controller
                 "crc" => " ",
                 "crc_rate" => " ",
                 "created_at" => date('Y-m-d H:i:s'),
-                "created_by" => "Jane",
+                "created_by" => $creator,
                 "bonus_rate" => substr($file_value, 131, 7),
                 "recent_pay_times" => substr($file_value, 74, 2),
             ));

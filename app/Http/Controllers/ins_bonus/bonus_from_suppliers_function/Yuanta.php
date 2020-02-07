@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 //元大人壽
 class Yuanta extends Controller
@@ -10,6 +11,8 @@ class Yuanta extends Controller
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
+        $creator = Auth::guard('api')->user()->name;
+
         foreach ($file[0] as $file_key => $file_value) {
             $data = $file_value;
             if (count($data) > 30 && \is_numeric($data[4])) {
@@ -35,7 +38,7 @@ class Yuanta extends Controller
                     "crc" => trim($data[21]),
                     "crc_rate" => (int) trim($data[29]),
                     "created_at" => date('Y-m-d H:i:s'),
-                    "created_by" => "Jane",
+                    "created_by" => $creator,
                     "bonus_rate" => (int) trim($data[26]) / 100,
                     "recent_pay_times" => (int) trim($data[16]),
                 ));

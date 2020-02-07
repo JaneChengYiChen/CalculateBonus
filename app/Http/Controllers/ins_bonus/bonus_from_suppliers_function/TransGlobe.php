@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 //全球人壽
 class TransGlobe extends Controller
@@ -10,6 +11,8 @@ class TransGlobe extends Controller
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {
         $array = array();
+        $creator = Auth::guard('api')->user()->name;
+
         foreach (explode("\n", $file) as $file_key => $file_value) {
             $explode_character = strchr($file_value, ",");
             $explode_arr = ($explode_character) ? explode(",", $file_value) : explode(" ", $file_value);
@@ -20,10 +23,10 @@ class TransGlobe extends Controller
             $format_detection = count($data);
             switch ($format_detection) {
                 case 9:
-                    $array = self::formatNineColumn($data, $array, $doc_name, $period, $supplier);
+                    $array = self::formatNineColumn($data, $array, $doc_name, $period, $supplier, $creator);
                     break;
                 case ($format_detection > 20):
-                    $array = self::formatOverTwentyColumn($data, $array, $doc_name, $period, $supplier);
+                    $array = self::formatOverTwentyColumn($data, $array, $doc_name, $period, $supplier, $creator);
                     break;
                 default:
                     break;
@@ -33,7 +36,7 @@ class TransGlobe extends Controller
         return $array;
     }
 
-    private static function formatNineColumn($data, $array, $doc_name, $period, $supplier)
+    private static function formatNineColumn($data, $array, $doc_name, $period, $supplier, $creator)
     {
 
         if (strlen($data[2]) > 10) {
@@ -66,7 +69,7 @@ class TransGlobe extends Controller
                     "crc" => substr($data[5], -2, 2),
                     "crc_rate" => (int) $data[6],
                     "created_at" => date('Y-m-d H:i:s'),
-                    "created_by" => "Jane",
+                    "created_by" => $creator,
                     "bonus_rate" => null,
                     "recent_pay_times" => null,
                 ));
@@ -76,7 +79,7 @@ class TransGlobe extends Controller
         return $array;
     }
 
-    private static function formatOverTwentyColumn($data, $array, $doc_name, $period, $supplier)
+    private static function formatOverTwentyColumn($data, $array, $doc_name, $period, $supplier, $creator)
     {
 
         if (count($data) > 20) {
@@ -106,7 +109,7 @@ class TransGlobe extends Controller
                     "crc" => $data[23],
                     "crc_rate" => $data[24],
                     "created_at" => date('Y-m-d H:i:s'),
-                    "created_by" => "Jane",
+                    "created_by" => $creator,
                 ));
             }
         }

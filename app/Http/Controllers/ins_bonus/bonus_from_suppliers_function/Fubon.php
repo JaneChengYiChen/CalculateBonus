@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 //富邦人壽
 class Fubon extends Controller
 {
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {
+        $creator = Auth::guard('api')->user()->name;
         $array = array();
 
         foreach (explode("\n", $file) as $file_key => $file_value) {
@@ -19,7 +21,8 @@ class Fubon extends Controller
                         $array,
                         $doc_name,
                         $period,
-                        $supplier
+                        $supplier,
+                        $creator
                     );
                     break;
                 default:
@@ -29,7 +32,8 @@ class Fubon extends Controller
                         $array,
                         $doc_name,
                         $period,
-                        $supplier
+                        $supplier,
+                        $creator
                     );
                     break;
             }
@@ -37,7 +41,7 @@ class Fubon extends Controller
         return $array;
     }
 
-    private static function formatCsvFile($file_value, $array, $doc_name, $period, $supplier)
+    private static function formatCsvFile($file_value, $array, $doc_name, $period, $supplier, $creator)
     {
         $file_value = explode(',', $file_value);
         $handle_id = substr($file_value[3], 10, 10);
@@ -79,7 +83,7 @@ class Fubon extends Controller
             "crc" => $crc,
             "crc_rate" => $crc_rate,
             "created_at" => date('Y-m-d H:i:s'),
-            "created_by" => "Jane",
+            "created_by" => $creator,
             "bonus_rate" => $bonus_rate,
             "recent_pay_times" => $recent_pay_times,
         ));
@@ -87,7 +91,7 @@ class Fubon extends Controller
         return $array;
     }
 
-    private static function formatDefault($file_value, $array, $doc_name, $period, $supplier)
+    private static function formatDefault($file_value, $array, $doc_name, $period, $supplier, $creator)
     {
         # substr($file_value, -6, 6);#集匯代碼
         # substr($file_value, -17, 10);#受理編號
@@ -172,7 +176,7 @@ class Fubon extends Controller
             "crc" => $crc,
             "crc_rate" => $crc_rate,
             "created_at" => date('Y-m-d H:i:s'),
-            "created_by" => "Jane",
+            "created_by" => $creator,
             "bonus_rate" => $bonus_rate,
             "recent_pay_times" => $recent_pay_times,
         ));
