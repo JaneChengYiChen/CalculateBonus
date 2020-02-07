@@ -16,7 +16,7 @@ class Farglory extends Controller
         foreach (explode("\n", $file) as $file_key => $file_value) {
             $handle_id = substr($file_value, 11, 10);
             $handle_name = substr($file_value, 21, 9);
-            $insured_id = substr($file_value, 45, 10);
+            $insured_id = null;
             $insured_name = substr($file_value, 55, 9);
             $ins_no = substr($file_value, 35, 10);
             $effe_date = substr($file_value, 88, 9);
