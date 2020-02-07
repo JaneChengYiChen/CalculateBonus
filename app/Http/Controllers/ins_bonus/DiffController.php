@@ -18,8 +18,8 @@ class DiffController extends Controller
         $supplier = $request->supplier;
         $start_period = $request->start_period;
         $end_period = $request->end_period;
-        $last_month = $this::date_formate($start_period)[-1];
-        $next_ten_month = $this::date_formate($end_period)[10];
+        $last_month = $this::dateFormate($start_period)[-1];
+        $next_ten_month = $this::dateFormate($end_period)[10];
 
         $prediction = $this::importBonusCalculation($supplier, $start_period, $end_period);
         $original = $this::importBonusSuppliers($supplier, $last_month, $next_ten_month);
