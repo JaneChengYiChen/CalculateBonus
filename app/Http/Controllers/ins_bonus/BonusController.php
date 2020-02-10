@@ -3,13 +3,13 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\AIA;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Farglory;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Fubon;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\ShinKong;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TaiwanLife;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\TransGlobe;
-use App\Http\Controllers\ins_bonus\bonus_from_suppliers_function\Yuanta;
+use App\Http\Controllers\ins_bonus\SupplierImport\AIA;
+use App\Http\Controllers\ins_bonus\SupplierImport\Farglory;
+use App\Http\Controllers\ins_bonus\SupplierImport\Fubon;
+use App\Http\Controllers\ins_bonus\SupplierImport\ShinKong;
+use App\Http\Controllers\ins_bonus\SupplierImport\TaiwanLife;
+use App\Http\Controllers\ins_bonus\SupplierImport\TransGlobe;
+use App\Http\Controllers\ins_bonus\SupplierImport\Yuanta;
 use App\Imports\UsersImport;
 use App\import_bonus_doc_rules;
 use App\import_bonus_suppliers;

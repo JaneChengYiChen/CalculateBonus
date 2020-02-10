@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\ins_bonus\bonus_from_suppliers_function;
+namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;

@@ -15,5 +15,6 @@ class UsersImport implements ToModel
             'UserName' => $row['UserName'],
             'Password' => $row['Password'],
             'date' => \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($row['保險公司發文日期']),
-        ]);}
+        ]);
+    }
 }
