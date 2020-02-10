@@ -212,8 +212,8 @@ class BonusController extends Controller
                 $benefit_lower_limit = ($data[16] == '全') ? 0 : $data[16];
                 $benefit_upper_limit = ($data[17] == '全') ? 0 : $data[17];
 
-                $insured_age_lower_limit = ($data[18] == '全') ? 0 : $data[18];
-                $insured_age_upper_limit = ($data[19] == '全') ? 99 : $data[19];
+                $insured_age_lower_limit = ($data[18] == '全' || is_null($data[19])) ? 0 : $data[18];
+                $insured_age_upper_limit = ($data[19] == '全' || is_null($data[19])) ? 99 : $data[19];
 
                 array_push($array, array(
                     "doc_name" => $doc_name,

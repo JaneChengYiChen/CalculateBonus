@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\DB;
 
 class CalculationController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api');
+    }
 
     public function query(Request $request)
     {
@@ -80,7 +84,6 @@ class CalculationController extends Controller
                 $is_expired = 2;
                 $rate = 0;
                 $rule_arr = $blank_rules;
-
             } else {
                 //caseA:至今繳費年期 > 應繳年期，保單可能符合「是否改成與主約繳費年期一致」的保單公文
                 if ($diff > $YPeriod && !empty($product_arr_initial)) {
@@ -98,8 +101,7 @@ class CalculationController extends Controller
                         else {
                             $rate = $this::counting_rate($rule_arr);
                         }
-                    }
-                    //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
+                    } //如果主約繳費年期小於保單到現在的時間，或未符合「是否改成與主約繳費年期一致」的保單公文，表示不用計算
                     else {
                         $is_expired = 1;
                         $rate = 0;
@@ -144,7 +146,6 @@ class CalculationController extends Controller
                             }
 
                             $rule_arr = empty($rule_arr) ? $blank_rules : $rule_arr;
-
                         }
                     } else {
                         $rules_start_period = (int) $rule_arr[0]["rules_start_period"];
@@ -195,7 +196,6 @@ class CalculationController extends Controller
                 "sup_code" => $supplier,
                 "remark" => $remark,
             ]);
-
         }
         ini_set("memory_limit", "3000M");
         $chunk = array_chunk($ins_detail_insert_arr, 50);
@@ -205,7 +205,6 @@ class CalculationController extends Controller
         }
 
         return response()->json(['success!']);
-
     }
 
     private function get_ins_details_from_pks($supplier, $period, $date)
