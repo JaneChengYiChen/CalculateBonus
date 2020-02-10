@@ -54,6 +54,7 @@ class BonusController extends Controller
                 $array = Yuanta::bonusOri($data, $doc_name, $period, $supplier);
                 break;
             case 300000722: //台灣人壽
+                ini_set("memory_limit", "1000M");
                 $path1 = $request->file('file')->store('temp');
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);

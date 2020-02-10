@@ -16,6 +16,10 @@ class TaiwanLife extends Controller
         foreach ($file[0] as $file_key => $file_value) {
             $data = $file_value;
             if (count($data) > 20 && \is_numeric($data[5])) {
+                $num_zero = 10 - strlen($data[2]);
+                $zeros = str_repeat('0', $num_zero);
+                $ins_combination = $zeros . $data[2];
+
                 array_push($array, array(
                     "doc_name" => $doc_name,
                     "period" => $period,
@@ -24,7 +28,7 @@ class TaiwanLife extends Controller
                     "handle_name" => trim($data[24]),
                     "insured_id" => trim($data[8]),
                     "insured_name" => trim($data[9]),
-                    "ins_no" => trim($data[2]),
+                    "ins_no" => trim($ins_combination),
                     "main_code" => trim($data[3]),
                     "effe_date" => trim($data[6]),
                     "ins_type" => trim($data[4]),
