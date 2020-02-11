@@ -28,4 +28,4 @@ Route::group(['prefix' => 'ins_bonus', 'namespace' => 'ins_bonus'], function () 
     Route::post('bonus_diff', 'DiffController@mapping'); //計算bonus_diff
 });
 
-Route::post('excelTest', 'ExcelController@export');
+Route::post('diffExportExcel', 'ExcelController@export'); //export Excel
