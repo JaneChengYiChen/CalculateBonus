@@ -48,6 +48,7 @@ class BonusDiffSheet implements FromQuery, WithTitle, WithHeadings, ShouldAutoSi
             ->where('period_cal', '>=', $this->start)
             ->where('period_cal', '<=', $this->end)
             ->where('sup_code', $this->supplier)
+            ->orderby('bonus_diff', 'asc')
             ->select(
                 'ins_no',
                 'pay_type',
