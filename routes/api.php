@@ -26,6 +26,5 @@ Route::group(['prefix' => 'ins_bonus', 'namespace' => 'ins_bonus'], function () 
     Route::post('import_bonus_doc_rules', 'BonusController@rules'); //匯入公文規則
     Route::post('ins_details_caculation', 'CalculationController@query'); //計算應該要有的pks佣金
     Route::post('bonus_diff', 'DiffController@mapping'); //計算bonus_diff
+    Route::post('diffExportExcel', 'ExcelController@export'); //export Excel
 });
-
-Route::post('diffExportExcel', 'ExcelController@export'); //export Excel
