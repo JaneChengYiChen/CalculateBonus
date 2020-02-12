@@ -25,22 +25,38 @@ class MailController extends Controller
 
         ini_set("memory_limit", "1000M");
 
-        $fileName = 'bonus_diff.xlsx';
+        $fileName = "服務津貼{$startPeriod}_{$endPeriod}.xlsx";
+        $fileNameTitle = '服務津貼_' . date('Y-m-d');
         $path = Excel::store(new BonusDiffExport(
             $startPeriod,
             $endPeriod,
             $supplier
-        ), $fileName, 'local');
+        ), $fileName, 'tmp');
 
-        $pathToFile = storage_path('app') . DIRECTORY_SEPARATOR . $fileName;
+        $pathToFile = DIRECTORY_SEPARATOR . "tmp" . DIRECTORY_SEPARATOR . $fileName;
+        $zip_path = DIRECTORY_SEPARATOR . "tmp" . DIRECTORY_SEPARATOR . $fileNameTitle . ".zip";
+        $password = env("BonusDiffPassword");
+        system("zip -P {$password} {$zip_path} {$pathToFile}");
 
-        Mail::raw('bonus_diff，密碼為統編', function ($message) use ($pathToFile) {
-            $to = 'jane.zheng@leishan.com.tw';
+        $content =
+            "Dear all,
+        附檔為服務津貼，密碼為統編
+        時間區間：{$startPeriod} ~ {$endPeriod}
+        ";
+
+        Mail::raw($content, function ($message) use ($zip_path) {
 
             $message->to(env("BonusDiffEmail"))
                 ->subject('服務津貼')
-                ->attach($pathToFile);
+                ->attach($zip_path);
         });
+
+        if (file_exists($zip_path)) {
+            unlink($zip_path);
+        }
+        if (file_exists($pathToFile)) {
+            unlink($pathToFile);
+        }
 
         return response()->json(['success!']);
     }

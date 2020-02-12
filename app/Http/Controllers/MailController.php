@@ -24,17 +24,29 @@ class MailController extends Controller
             $startPeriod,
             $endPeriod,
             $supplier
-        ), $fileName, 'local');
+        ), $fileName, 'tmp');
 
-        $pathToFile = storage_path('app') . DIRECTORY_SEPARATOR . $fileName;
+        $pathToFile = "/tmp/" . DIRECTORY_SEPARATOR . $fileName;
+        $zip_path = DIRECTORY_SEPARATOR . "tmp" . DIRECTORY_SEPARATOR . $fileName . "zip";
+        $password = env("BonusDiffPassword");
+        system("zip -P {$password} {$zip_path} {$pathToFile}");
+        echo var_Dump($pathToFile);
+        exit;
 
-        Mail::raw('bonus_diff，密碼為統編', function ($message) use ($pathToFile) {
+        Mail::raw('bonus_diff，密碼為統編', function ($message) use ($zip_path) {
             $to = 'jane.zheng@leishan.com.tw';
 
             $message->to(env("BonusDiffEmail"))
                 ->subject('服務津貼')
-                ->attach($pathToFile);
+                ->attach($zip_path);
         });
+
+        if (file_exists($zip_path)) {
+            unlink($zip_path);
+        }
+        if (file_exists($pathToFile)) {
+            unlink($pathToFile);
+        }
 
         return response()->json(['success!']);
     }
