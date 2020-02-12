@@ -36,7 +36,11 @@ class MailController extends Controller
         $pathToFile = "/tmp/" . $fileName;
         $zip_path = "/tmp/" . $fileNameZip;
         $password = env("BonusDiffPassword");
-        system("zip -P {$password} {$zip_path} {$pathToFile}");
+
+        $zip = new \ZipArchive();
+        $zip->open($zip_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+        $zip->addFile($pathToFile);
+        $zip->close();
 
         $content =
             "Dear all,
