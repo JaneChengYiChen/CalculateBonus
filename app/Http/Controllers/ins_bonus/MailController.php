@@ -26,15 +26,15 @@ class MailController extends Controller
         ini_set("memory_limit", "1000M");
 
         $fileName = "服務津貼{$startPeriod}_{$endPeriod}.xlsx";
-        $fileNameTitle = '服務津貼_' . date('Y-m-d');
+        $fileNameZip = "服務津貼{$startPeriod}_{$endPeriod}.zip";
         $path = Excel::store(new BonusDiffExport(
             $startPeriod,
             $endPeriod,
             $supplier
         ), $fileName, 'tmp');
 
-        $pathToFile = DIRECTORY_SEPARATOR . "tmp" . DIRECTORY_SEPARATOR . $fileName;
-        $zip_path = DIRECTORY_SEPARATOR . "tmp" . DIRECTORY_SEPARATOR . $fileNameTitle . ".zip";
+        $pathToFile = "/tmp/" . $fileName;
+        $zip_path = "/tmp/" . $fileNameZip;
         $password = env("BonusDiffPassword");
         system("zip -P {$password} {$zip_path} {$pathToFile}");
 
