@@ -72,7 +72,7 @@ class BonusDiffSheet implements FromQuery, WithTitle, WithHeadings, ShouldAutoSi
             $bonus_diff->bonus_cal,
             $bonus_diff->period_ori,
             $bonus_diff->bonus_ori,
-            $bonus_diff->bonus_diff,
+            number_format(round((int) $bonus_diff->bonus_diff)),
             $bonus_diff->remark,
             $bonus_diff->remark_ic,
         ];
