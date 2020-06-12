@@ -99,7 +99,6 @@ class Farglory extends Controller
 
     private function typeThree($file_value)
     {
-        $file_value = $file_value . "暫";
         $this->handle_id = substr($file_value, 11, 10);
         $this->handle_name = mb_substr($file_value, 21, 4, "utf-8");
         $this->insured_id = null;
