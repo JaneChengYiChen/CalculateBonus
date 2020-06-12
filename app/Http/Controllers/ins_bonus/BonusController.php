@@ -42,7 +42,8 @@ class BonusController extends Controller
                 }
                 break;
             case 300000735: //遠雄人壽
-                $array = Farglory::bonusOri($file, $doc_name, $period, $supplier);
+                $sup = new Farglory;
+                $array = $sup->bonusOri($file, $doc_name, $period, $supplier);
                 break;
             case 300000734: //富邦人壽
                 $array = Fubon::bonusOri($file, $doc_name, $period, $supplier);
