@@ -24,11 +24,13 @@ class Farglory extends Controller
                 case 190:
                     $this->typeThree($file_value);
                     break;
+                case 192:
+                    $this->typeFour($file_value);
+                    break;
                 default:
                     $this->typeTwo($file_value);
                     break;
             }
-
             array_push($array, array(
                 "doc_name" => $doc_name,
                 "period" => $period,
@@ -115,5 +117,25 @@ class Farglory extends Controller
         $this->bonus = (int) mb_substr($file_value, 110, 9, "utf-8");
         $this->bonus_rate = (int) mb_substr($file_value, 119, 7, "utf-8");
         $this->recent_pay_times = mb_substr($file_value, -120, 2, "utf-8");
+    }
+
+    private function typeFour($file_value)
+    {
+        $this->handle_id = substr($file_value, 11, 10);
+        $this->handle_name = mb_substr($file_value, 21, 4, "utf-8");
+        $this->insured_id = null;
+        $this->insured_name = null;
+        $this->ins_no = trim(mb_substr($file_value, 27, 11, "utf-8"));
+        $this->ins_no = preg_replace("|[\x21-\x2ba-z]|is", "", $this->ins_no);
+        $this->effe_date = trim(mb_substr($file_value, 75, 9, "utf-8"));
+        $this->ins_type = substr($file_value, 75, 6);
+        $this->total_pay_period = mb_substr($file_value, -124, 2, "utf-8");
+        $this->pay_type = mb_substr($file_value, -122, 1, "utf-8");
+        $this->recent_pay_period = mb_substr($file_value, -121, 2, "utf-8");
+        $this->premium_ori = (int) substr($file_value, 97, 9);
+        $this->premium_twd = (int) substr($file_value, 97, 9);
+        $this->bonus = (int) substr($file_value, 122, 9);
+        $this->bonus_rate = (int) substr($file_value, 131, 7);
+        $this->recent_pay_times = mb_substr($file_value, -119, 2, "utf-8");
     }
 }
