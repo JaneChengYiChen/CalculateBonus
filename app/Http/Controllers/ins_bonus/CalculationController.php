@@ -68,30 +68,11 @@ class CalculationController extends Controller
             $remark = $ins_details_keys->remark; //備註
             $crc = $ins_details_keys->CRC; //幣別
             $payer_age = $ins_details_keys->payer_age; //要保人年齡
-
-            switch ($this->supplier) {
-                case '300000734': //富邦人壽，取前四碼
-                    $ins_code_search = substr($ins_code, 0, 4);
-                    break;
-                case '300000722': //台灣人壽，取前六碼
-                    $ins_code_search = substr($ins_code, 0, 6);
-                    break;
-                case '300000749': //新光人壽，取前五碼
-                    $ins_code_search = substr($ins_code, 0, 5);
-                    break;
-                case '300000717': //友邦人壽，取前七碼
-                    $ins_code_search = substr($ins_code, 0, 7);
-                    break;
-                default:
-                    $ins_code_search = substr($ins_code, 0, 3);
-            }
-
+            $ins_code_search = $this->insCodeSearch($ins_code);
             $lower_limit = range(0, $YPeriod);
             $upper_limit = range($YPeriod, 100);
-
             //商品、年限上限、年限下限、繳別之集合
             $product_arr_initial = array_keys(array_column($ins_rules, 'product_code'), $ins_code_search);
-
             $exception_mark = empty($product_arr_initial) ? 1 : 0; //is exception
 
             $blank_rules = [
@@ -616,5 +597,27 @@ class CalculationController extends Controller
         }
 
         return $dates;
+    }
+
+    private function insCodeSearch($ins_code)
+    {
+        switch ($this->supplier) {
+            case '300000734': //富邦人壽，取前四碼
+                $ins_code_search = substr($ins_code, 0, 4);
+                break;
+            case '300000722': //台灣人壽，取前六碼
+                $ins_code_search = substr($ins_code, 0, 6);
+                break;
+            case '300000749': //新光人壽，取前五碼
+                $ins_code_search = substr($ins_code, 0, 5);
+                break;
+            case '300000717': //友邦人壽，取前七碼
+                $ins_code_search = substr($ins_code, 0, 7);
+                break;
+            default:
+                $ins_code_search = substr($ins_code, 0, 3);
+        }
+
+        return $ins_code_search;
     }
 }
