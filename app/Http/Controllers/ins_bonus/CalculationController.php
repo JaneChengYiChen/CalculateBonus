@@ -30,11 +30,11 @@ class CalculationController extends Controller
 
     public function query(Request $request)
     {
-        $date = $this->dateRange($step = '+1 month', $format = 'Ym');
-        foreach ($date as $date) {
-            $period = $date['period'];
-            $date = $date['endOfThisMonth'];
-            $this->generateData($this->supplier, $period, $date);
+        $dates = $this->dateRange($step = '+1 month', $format = 'Ym');
+        foreach ($dates as $value) {
+            $this->period = $value['period'];
+            $this->date = $value['endOfThisMonth'];
+            $this->generateData();
         }
 
         ini_set("memory_limit", "3000M");
@@ -47,11 +47,11 @@ class CalculationController extends Controller
         return response()->json(['success!']);
     }
 
-    private function generateData($supplier, $period, $date)
+    private function generateData()
     {
-        $cal_month = (int) \substr($period, -2, 2);
-        $ins_details = $this::getInsDetailsFromPks($supplier, $period, $date);
-        $ins_rules = $this::getOfficialRules($supplier);
+        $cal_month = (int) \substr($this->period, -2, 2);
+        $ins_details = $this::getInsDetailsFromPks();
+        $ins_rules = $this::getOfficialRules();
         foreach ($ins_details as $ins_details_keys) {
             $ins_code = $ins_details_keys->Ins_Code; //商品編號
             $YPeriod = (int) $ins_details_keys->YPeriod; //應繳年期
@@ -69,17 +69,17 @@ class CalculationController extends Controller
             $crc = $ins_details_keys->CRC; //幣別
             $payer_age = $ins_details_keys->payer_age; //要保人年齡
 
-            switch ($supplier) {
-                case ($supplier == '300000734'): //富邦人壽，取前四碼
+            switch ($this->supplier) {
+                case '300000734': //富邦人壽，取前四碼
                     $ins_code_search = substr($ins_code, 0, 4);
                     break;
-                case ($supplier == '300000722'): //台灣人壽，取前六碼
+                case '300000722': //台灣人壽，取前六碼
                     $ins_code_search = substr($ins_code, 0, 6);
                     break;
-                case ($supplier == '300000749'): //新光人壽，取前五碼
+                case '300000749': //新光人壽，取前五碼
                     $ins_code_search = substr($ins_code, 0, 5);
                     break;
-                case ($supplier == '300000717'): //友邦人壽，取前七碼
+                case '300000717': //友邦人壽，取前七碼
                     $ins_code_search = substr($ins_code, 0, 7);
                     break;
                 default:
@@ -101,7 +101,7 @@ class CalculationController extends Controller
             ];
 
             //躉繳且首佣時間不等於該計算時間
-            if (($PayType == 'D' && ($period != $first_pay_period))
+            if (($PayType == 'D' && ($this->period != $first_pay_period))
                 //季繳且首佣月份減該計算月份後除以3之餘數不等於零
                  || ($PayType == 'Q' && (($first_pay_month - $cal_month) % 3) != 0)
                 //半年繳且首佣月份減該計算月份後除以6之餘數不等於零
@@ -240,18 +240,18 @@ class CalculationController extends Controller
                 "rate" => $ins_details_keys->crcrate,
                 "recent_pay_period" => $ins_details_keys->diff,
                 "bonus" => $bonus,
-                "period" => $period,
+                "period" => $this->period,
                 "is_expired" => $is_expired,
                 "doc_id" => $rule_arr[0]["id"],
                 "created_at" => date('Y-m-d H:i:s'),
                 "created_by" => "jane",
-                "sup_code" => $supplier,
+                "sup_code" => $this->supplier,
                 "remark" => $remark,
             ]);
         }
     }
 
-    private function getInsDetailsFromPks($supplier, $period, $date)
+    private function getInsDetailsFromPks()
     {
         ini_set("memory_limit", "3000M");
         $data = DB::connection('sqlsrv')
@@ -286,7 +286,7 @@ class CalculationController extends Controller
             p.Pro_Name,
             p.InsType,
             p.FullName,
-            (DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1 diff,
+            (DATEDIFF(Month, ins.Effe_Date, '{$this->date}') / 12) + 1 diff,
             F.first_pay_period,
             RIGHT(F.first_pay_period, 2) first_pay_month, year(ins.Receive_Date) - year(ic.birthday) payer_age
         FROM
@@ -315,7 +315,7 @@ class CalculationController extends Controller
                         WHERE
                             x.CNO = b.CNO
                             AND x.CRC = b.CRC
-                            AND x. DATE <= '{$date}'
+                            AND x. DATE <= '{$this->date}'
                         ORDER BY
                             x. DATE DESC), 1) AS CRCRate,
                     ROUND(a.FYP * ISNULL(d.FeatBR, 1) * (
@@ -384,25 +384,25 @@ class CalculationController extends Controller
                 FROM
                     SS_Detail
                 WHERE
-                    ss_detail.SupCode = '{$supplier}'
-                    AND ss_detail. [Period] <= '{$period}'
+                    ss_detail.SupCode = '{$this->supplier}'
+                    AND ss_detail. [Period] <= '{$this->period}'
                 GROUP BY
                     SS_Detail.INo) F ON F.INO = ins.Ins_No
             WHERE
                 ins.Ins_No in( SELECT DISTINCT
                         SS_Detail.INo FROM SS_Detail
                     WHERE
-                        ss_detail.SupCode = '{$supplier}'
-                        AND ss_detail. [Period] <= '{$period}')
-                and((DATEDIFF(Month, ins.Effe_Date, '{$date}') / 12) + 1) > 0");
+                        ss_detail.SupCode = '{$this->supplier}'
+                        AND ss_detail. [Period] <= '{$this->period}')
+                and((DATEDIFF(Month, ins.Effe_Date, '{$this->date}') / 12) + 1) > 0");
 
         return $data;
     }
 
-    private function getOfficialRules($supplier)
+    private function getOfficialRules()
     {
         $ins_rules = import_bonus_doc_rules::whereNull('deleted_at')
-            ->where('supplier_code', '=', "{$supplier}")
+            ->where('supplier_code', '=', "{$this->supplier}")
             ->orderBy('doc_date', 'desc')
             ->get();
 
