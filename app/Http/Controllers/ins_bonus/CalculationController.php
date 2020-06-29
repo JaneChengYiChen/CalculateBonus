@@ -10,21 +10,48 @@ use Illuminate\Support\Facades\DB;
 
 class CalculationController extends Controller
 {
-    public function __construct()
+    public function __construct(Request $request)
     {
         $this->middleware('auth:api');
+        $this->middleware(function ($request, $next) {
+            try {
+                $this->supplier = $request->supplier;
+                $this->start_period = $request->start_period;
+                $this->end_period = $request->end_period;
+
+                return $next($request);
+            } catch (\Exception $e) {
+                \Log::error($e->getMessage());
+            }
+        });
+
+        $this->ins_detail_insert_arr = [];
     }
 
     public function query(Request $request)
     {
-        $supplier = $request->supplier;
-        $period = $request->period;
-        $date = $request->date;
+        $date = $this->dateRange($step = '+1 month', $format = 'Ym');
+        foreach ($date as $date) {
+            $period = $date['period'];
+            $date = $date['endOfThisMonth'];
+            $this->generateData($this->supplier, $period, $date);
+        }
 
+        ini_set("memory_limit", "3000M");
+        $chunk = array_chunk($this->ins_detail_insert_arr, 50);
+
+        foreach ($chunk as $chunk) {
+            ins_details_calculation::insert($chunk);
+        }
+
+        return response()->json(['success!']);
+    }
+
+    private function generateData($supplier, $period, $date)
+    {
         $cal_month = (int) \substr($period, -2, 2);
         $ins_details = $this::getInsDetailsFromPks($supplier, $period, $date);
         $ins_rules = $this::getOfficialRules($supplier);
-        $ins_detail_insert_arr = [];
         foreach ($ins_details as $ins_details_keys) {
             $ins_code = $ins_details_keys->Ins_Code; //商品編號
             $YPeriod = (int) $ins_details_keys->YPeriod; //應繳年期
@@ -193,7 +220,7 @@ class CalculationController extends Controller
                 $bonus = (float) $FYP * (float) $rate;
             }
 
-            array_push($ins_detail_insert_arr, [
+            array_push($this->ins_detail_insert_arr, [
                 "code" => $ins_details_keys->code,
                 "ins_no" => $ins_details_keys->Ins_No,
                 "receive_date" => $ins_details_keys->Receive_Date,
@@ -222,14 +249,6 @@ class CalculationController extends Controller
                 "remark" => $remark,
             ]);
         }
-        ini_set("memory_limit", "3000M");
-        $chunk = array_chunk($ins_detail_insert_arr, 50);
-
-        foreach ($chunk as $chunk) {
-            ins_details_calculation::insert($chunk);
-        }
-
-        return response()->json(['success!']);
     }
 
     private function getInsDetailsFromPks($supplier, $period, $date)
@@ -578,5 +597,24 @@ class CalculationController extends Controller
         }
 
         return $rule_arr;
+    }
+
+    //ref https://blog.longwin.com.tw/2014/06/php-date-range-list-2014/
+    private function dateRange($step = '+1 month', $format = 'Ym')
+    {
+        $dates = [];
+        $start = strtotime($this->start_period . '01');
+        $last = strtotime($this->end_period . '01');
+
+        while ($start <= $last) {
+            $startMonthEndDay = date("Y-m-t", $start);
+            $dates[] = [
+                'period' => date($format, $start),
+                'endOfThisMonth' => $startMonthEndDay,
+            ];
+            $start = strtotime($step, $start);
+        }
+
+        return $dates;
     }
 }
