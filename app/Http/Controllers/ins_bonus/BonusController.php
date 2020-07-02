@@ -15,12 +15,17 @@ use App\import_bonus_doc_rules;
 use App\import_bonus_suppliers;
 use Illuminate\Http\Request;
 use \PhpOffice\PhpSpreadsheet\Shared\Date;
+use File;
 
 class BonusController extends Controller
 {
-    public function __construct()
+    public function __construct(Request $request)
     {
         $this->middleware('auth:api');
+        $this->supplier = $request->supplier;
+        $this->file_path = $request->file->path();
+        $this->doc_name = $request->file->getClientOriginalName();
+        $this->period = $request->period;
     }
 
     public function supplier(Request $request)
@@ -85,33 +90,23 @@ class BonusController extends Controller
                     import_bonus_suppliers::insert($chunk);
                 }
 
-                $today = date('Y_m_d');
-                //uplaod to server
-                $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR .
-                    $supplier . DIRECTORY_SEPARATOR . "supplier_bonus" . DIRECTORY_SEPARATOR . $today;
-                exec("mkdir {$upload_path}");
-                $upload_file_path = $upload_path . DIRECTORY_SEPARATOR . $doc_name;
-                move_uploaded_file($file_path, $upload_file_path);
-
+                $this->uploadToServer('supplier_bonus');
                 return response()->json(['success!']);
         }
     }
 
     public function rules(Request $request)
     {
-
-        $supplier = $request->supplier;
-        $file_path = $request->file->path();
-        $doc_name = $request->file->getClientOriginalName();
-
         $path1 = $request->file('file')->store('temp');
         $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
         $datas = (new UsersImport)->toArray($path);
 
         $array = array();
         foreach ($datas[0] as $file_key => $file_value) {
-            if (count($file_value) > 50 && empty($file_value[3]) == false
-                && mb_strlen($file_value[3], "UTF-8") == strlen($file_value[3])) {
+            if (count($file_value) > 40 
+                && empty($file_value[3]) == false
+                && mb_strlen($file_value[3], "UTF-8") == strlen($file_value[3])
+                ) {
                 $data = $file_value;
                 //currency
                 $AUD = 1;
@@ -129,13 +124,29 @@ class BonusController extends Controller
                 if ($data[10] == '外') {
                     $NTD = 0;
                 }
+                if ($data[10] == '美') {
+                    $AUD = 0;
+                    $CAD = 0;
+                    $EUR = 0;
+                    $GBP = 0;
+                    $HKD = 0;
+                    $JPY = 0;
+                    $NTD = 0;
+                    $NZD = 0;
+                    $RMB = 0;
+                    $USD = 1;
+                    $ZAR = 0;
+                }
 
                 //period_rules
-                if ($data[18] == 0) {
+                if ($data[18] === 0) {
                     $data[18] = "全";
                 }
-                if ($data[14] == 0 && $data[14] !== '躉') {
+
+                if ($data[14] === 0 && $data[14] !== '躉') {
                     $data[14] = "全";
+                }else if($data[14] == '彈性'){
+                    $data[14] = "彈性";
                 }
 
                 $rule_types = ['NNN', 'AAA', 'BBB', 'CCC'];
@@ -217,14 +228,14 @@ class BonusController extends Controller
                 $insured_age_upper_limit = ($data[19] == '全' || is_null($data[19])) ? 99 : $data[19];
 
                 array_push($array, array(
-                    "doc_name" => $doc_name,
+                    "doc_name" => $this->doc_name,
                     "doc_date" => $doc_date,
                     "doc_number" => $data[1],
                     "doc_number_leishan" => $data[2],
                     "rules_start_date" => $rules_start_date,
                     "rules_due_date" => $rules_due_date,
                     "auto_extension" => $data[5],
-                    "supplier_code" => $supplier,
+                    "supplier_code" => $this->supplier,
                     "supplier_name" => $data[6],
                     "product_name" => $data[7],
                     "product_code" => $product_code,
@@ -290,25 +301,26 @@ class BonusController extends Controller
             }
         }
         //將先前的規則改為delete
-        import_bonus_doc_rules::where('supplier_code', $supplier)
+        import_bonus_doc_rules::where('supplier_code', $this->supplier)
             ->where('deleted_at', null)
             ->update(['deleted_at' => date('Y-m-d H:i:s'), "deleted_by" => "jane"]);
 
         //新增新的規則
         import_bonus_doc_rules::insert($array);
 
-        $today = date('Y_m_d');
-        //uplaod to server
-        $upload_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier
-            . DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today;
-
-        exec("mkdir {$upload_path}");
-
-        $upload_file_path = env("import_file_path") . DIRECTORY_SEPARATOR . $supplier .
-            DIRECTORY_SEPARATOR . "supplier_rules" . DIRECTORY_SEPARATOR . $today . DIRECTORY_SEPARATOR . $doc_name;
-
-        move_uploaded_file($file_path, $upload_file_path);
-
+        $this->uploadToServer('supplier_rules');
+        File::delete($path);
         return response()->json(['success!']);
+    }
+
+    private function uploadToServer($dir)
+    {
+        $today = date('Y_m_d');
+        $fileDir = storage_path("app/{$this->supplier}/{$dir}/{$today}");
+        File::makeDirectory($fileDir, $mode = 0755, true, true);
+
+        $upload_file_path = $fileDir . DIRECTORY_SEPARATOR . $this->doc_name;
+
+        move_uploaded_file($this->file_path, $upload_file_path);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ins_bonus;
 use App\Http\Controllers\Controller;
 use App\import_bonus_doc_rules;
 use App\ins_details_calculation;
+use File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,12 +39,15 @@ class CalculationController extends Controller
         }
 
         ini_set("memory_limit", "3000M");
-        $chunk = array_chunk($this->ins_detail_insert_arr, 50);
+        $part = (int) (2100 / 4) - 1;
+        //$part = (int) 2100;
+        $chunk = array_chunk($this->ins_detail_insert_arr, $part);
+        //$chunk = array_chunk($this->ins_detail_insert_arr, 50);
 
         foreach ($chunk as $chunk) {
             ins_details_calculation::insert($chunk);
         }
-
+        
         return response()->json(['success!']);
     }
 
@@ -619,5 +623,20 @@ class CalculationController extends Controller
         }
 
         return $ins_code_search;
+    }
+
+    private function log($msg)
+    {
+        $today = date('Ymd');
+        $log_file_path = storage_path("logs/calculation_{$today}.log");
+
+        $log_info = [
+            'date' => date('Y-m-d H:i:s'),
+            'msg' => $msg,
+        ];
+
+        $log_info_json = json_encode($log_info) . "\r\n";
+
+        File::append($log_file_path, $log_info_json);
     }
 }
