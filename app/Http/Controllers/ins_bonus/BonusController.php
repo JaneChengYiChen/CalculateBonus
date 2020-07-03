@@ -60,6 +60,7 @@ class BonusController extends Controller
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);
                 $array = Yuanta::bonusOri($data, $doc_name, $period, $supplier);
+                File::delete($path);
                 break;
             case 300000722: //台灣人壽
                 ini_set("memory_limit", "1000M");
@@ -67,6 +68,7 @@ class BonusController extends Controller
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);
                 $array = TaiwanLife::bonusOri($data, $doc_name, $period, $supplier);
+                File::delete($path);
                 break;
             case 300000749: //新光人壽
                 $array = ShinKong::bonusOri($file, $doc_name, $period, $supplier);
@@ -76,6 +78,7 @@ class BonusController extends Controller
                 $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
                 $data = (new UsersImport)->toArray($path);
                 $array = AIA::bonusOri($data, $doc_name, $period, $supplier);
+                File::delete($path);
                 break;
             default:
                 return response()->json(['Failed! Please Check Your Input Info!']);
