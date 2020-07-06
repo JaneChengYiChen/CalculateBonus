@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ins_bonus\BonusClass;
 use App\Http\Controllers\ins_bonus\SupplierImport\AIA;
 use App\Http\Controllers\ins_bonus\SupplierImport\Farglory;
 use App\Http\Controllers\ins_bonus\SupplierImport\Fubon;
+use App\Http\Controllers\ins_bonus\SupplierImport\Hontai;
 use App\Http\Controllers\ins_bonus\SupplierImport\ShinKong;
 use App\Http\Controllers\ins_bonus\SupplierImport\TaiwanLife;
 use App\Http\Controllers\ins_bonus\SupplierImport\TransGlobe;
@@ -49,6 +50,9 @@ class DataFromSupplier
                 break;
             case 300000749: //新光人壽
                 $this->sup = new ShinKong;
+                break;
+            case 300000736: //宏泰人壽
+                $this->sup = new Hontai;
                 break;
             case 300006376: //元大人壽
                 $this->file = $this->tmpFile();
