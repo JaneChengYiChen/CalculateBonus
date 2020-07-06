@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\ins_bonus\BonusRules\RulesColumn;
+use App\Http\Controllers\ins_bonus\BonusClass\RulesColumn;
 use App\Http\Controllers\ins_bonus\SupplierImport\AIA;
 use App\Http\Controllers\ins_bonus\SupplierImport\Farglory;
 use App\Http\Controllers\ins_bonus\SupplierImport\Fubon;

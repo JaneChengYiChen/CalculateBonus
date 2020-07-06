@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\ins_bonus\BonusRules;
+namespace App\Http\Controllers\ins_bonus\BonusClass;
 
 use Illuminate\Support\Facades\Auth;
 use \PhpOffice\PhpSpreadsheet\Shared\Date;
