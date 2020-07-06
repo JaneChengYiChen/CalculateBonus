@@ -617,7 +617,6 @@ class CalculationController extends Controller
                 break;
             case '300000717': //友邦人壽，取前七碼
             case '300000659': //保誠人壽，取前七碼
-            case '300000736': //宏泰人壽，取前七碼
                 $ins_code_search = substr($ins_code, 0, 7);
                 break;
             default:
