@@ -47,7 +47,7 @@ class CalculationController extends Controller
         foreach ($chunk as $chunk) {
             ins_details_calculation::insert($chunk);
         }
-        
+
         return response()->json(['success!']);
     }
 
@@ -616,6 +616,7 @@ class CalculationController extends Controller
                 $ins_code_search = substr($ins_code, 0, 5);
                 break;
             case '300000717': //友邦人壽，取前七碼
+            case '300000659': //保誠人壽，取前七碼
                 $ins_code_search = substr($ins_code, 0, 7);
                 break;
             default:
