@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
 //富邦人壽
-class Fubon extends Controller
+class Fubon
 {
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {

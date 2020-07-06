@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
 //台灣人壽
-class TaiwanLife extends Controller
+class TaiwanLife
 {
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {

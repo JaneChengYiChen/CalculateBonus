@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
 //新光人壽
-class ShinKong extends Controller
+class ShinKong
 {
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {

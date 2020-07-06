@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
 //遠雄人壽
-class Farglory extends Controller
+class Farglory
 {
     public function bonusOri($file, $doc_name, $period, $supplier)
     {

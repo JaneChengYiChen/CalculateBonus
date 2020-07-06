@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
 //元大人壽
-class Yuanta extends Controller
+class Yuanta
 {
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {

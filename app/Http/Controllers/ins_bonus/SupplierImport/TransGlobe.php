@@ -2,11 +2,10 @@
 
 namespace App\Http\Controllers\ins_bonus\SupplierImport;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
 //全球人壽
-class TransGlobe extends Controller
+class TransGlobe
 {
     public static function bonusOri($file, $doc_name, $period, $supplier)
     {

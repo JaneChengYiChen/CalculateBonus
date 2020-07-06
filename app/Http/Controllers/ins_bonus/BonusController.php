@@ -3,14 +3,8 @@
 namespace App\Http\Controllers\ins_bonus;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\ins_bonus\BonusClass\DataFromSupplier;
 use App\Http\Controllers\ins_bonus\BonusClass\RulesColumn;
-use App\Http\Controllers\ins_bonus\SupplierImport\AIA;
-use App\Http\Controllers\ins_bonus\SupplierImport\Farglory;
-use App\Http\Controllers\ins_bonus\SupplierImport\Fubon;
-use App\Http\Controllers\ins_bonus\SupplierImport\ShinKong;
-use App\Http\Controllers\ins_bonus\SupplierImport\TaiwanLife;
-use App\Http\Controllers\ins_bonus\SupplierImport\TransGlobe;
-use App\Http\Controllers\ins_bonus\SupplierImport\Yuanta;
 use App\Imports\UsersImport;
 use App\import_bonus_doc_rules;
 use App\import_bonus_suppliers;
@@ -28,62 +22,13 @@ class BonusController extends Controller
         $this->file_path = $request->file->path();
         $this->doc_name = $request->file->getClientOriginalName();
         $this->period = $request->period;
+        $this->tmpFile = $request->file('file')->store('temp');
     }
 
     public function supplier(Request $request)
     {
-
-        $supplier = $request->supplier;
-        $period = $request->period;
-        $file_path = $request->file->path();
-        $doc_name = $request->file->getClientOriginalName();
-
-        $file = file_get_contents($file_path);
-
-        switch ($supplier) {
-            case 300000737: //全球人壽 ---> all csv
-                if ((preg_match('/csv/i', strtolower($doc_name)))) {
-                    $array = TransGlobe::bonusOri($file, $doc_name, $period, $supplier);
-                } else {
-                    return response()->json(['Please Convert File to CSV Format!']);
-                }
-                break;
-            case 300000735: //遠雄人壽
-                $sup = new Farglory;
-                $array = $sup->bonusOri($file, $doc_name, $period, $supplier);
-                break;
-            case 300000734: //富邦人壽
-                $array = Fubon::bonusOri($file, $doc_name, $period, $supplier);
-                break;
-            case 300006376: //元大人壽
-                $path1 = $request->file('file')->store('temp');
-                $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
-                $data = (new UsersImport)->toArray($path);
-                $array = Yuanta::bonusOri($data, $doc_name, $period, $supplier);
-                File::delete($path);
-                break;
-            case 300000722: //台灣人壽
-                ini_set("memory_limit", "1000M");
-                $path1 = $request->file('file')->store('temp');
-                $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
-                $data = (new UsersImport)->toArray($path);
-                $array = TaiwanLife::bonusOri($data, $doc_name, $period, $supplier);
-                File::delete($path);
-                break;
-            case 300000749: //新光人壽
-                $array = ShinKong::bonusOri($file, $doc_name, $period, $supplier);
-                break;
-            case 300000717: //友邦人壽
-                $path1 = $request->file('file')->store('temp');
-                $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
-                $data = (new UsersImport)->toArray($path);
-                $array = AIA::bonusOri($data, $doc_name, $period, $supplier);
-                File::delete($path);
-                break;
-            default:
-                return response()->json(['Failed! Please Check Your Input Info!']);
-                exit;
-        }
+        $DataFromSupplier = new DataFromSupplier($request);
+        $array = $DataFromSupplier->insertData();
 
         switch ($array) {
             case is_null($array):
@@ -100,10 +45,9 @@ class BonusController extends Controller
         }
     }
 
-    public function rules(Request $request)
+    public function rules()
     {
-        $path1 = $request->file('file')->store('temp');
-        $path = storage_path('app') . DIRECTORY_SEPARATOR . $path1;
+        $path = storage_path('app') . DIRECTORY_SEPARATOR . $this->tmpFile;
         $datas = (new UsersImport)->toArray($path);
 
         $array = array();
