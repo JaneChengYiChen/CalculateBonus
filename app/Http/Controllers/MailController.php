@@ -34,7 +34,7 @@ class MailController extends Controller
         exit;
 
         Mail::raw('bonus_diff，密碼為統編', function ($message) use ($zip_path) {
-            $to = 'jane.zheng@leishan.com.tw';
+            $to = 'ToWhom@gmail.com';
 
             $message->to(env("BonusDiffEmail"))
                 ->subject('服務津貼')
